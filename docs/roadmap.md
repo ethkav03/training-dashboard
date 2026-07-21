@@ -25,7 +25,7 @@ for the implementation detail behind each item.
 | 9 | WHOOP OAuth connect/callback/disconnect (real endpoints, scopes verified against developer.whoop.com), signed-state CSRF protection, Settings UI (connect/sync-now/disconnect, visible error state) | Done |
 | 10 | WHOOP data sync: real recovery/sleep/workout fetch (paginated), field mapping (sport→ActivityType, strain→intensity, kJ→kcal), sync result summary in Settings | Done |
 | 10.5 | Fuel: calories-consumed-vs-burned indicator + day/week/month/year energy-balance graph | Done |
-| 11 | Mobile auth (`POST /auth/google/mobile`, shared `upsertUserFromGoogleIdentity`) + native Android app scaffold (Kotlin, Google Sign-In only, no Health Connect yet) | Planned |
+| 11 | Mobile auth (`POST /auth/google/mobile`, shared `upsertUserFromGoogleIdentity`) + native Android app scaffold (Kotlin, Google Sign-In only, no Health Connect yet) | Done (backend verified via curl; Android project written but not yet compiled/run -- no Android SDK/emulator in the build environment, see [architecture.md](./architecture.md#native-android-app)) |
 | 12 | Health Connect read + manual sync from the Android app (bounded historical read, mapper, `POST /integrations/health-connect/sync`) | Planned |
 | 13 | Android `WorkManager` periodic incremental sync (changes-token handling), Health Connect row wired into web Settings, on-device steps display | Planned |
 | 14 | Docs pass across all five `/docs` files for Sprints 8–13 + `.env.example` updates + Settings polish | Planned |

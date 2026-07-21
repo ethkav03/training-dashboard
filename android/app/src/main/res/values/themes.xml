@@ -1,0 +1,5 @@
+<resources>
+    <!-- Compose (MomentumTheme, see ui/theme/Theme.kt) owns all real theming;
+         this just gives the manifest a valid, minimal base theme. -->
+    <style name="Theme.Momentum" parent="Theme.Material3.DayNight.NoActionBar" />
+</resources>

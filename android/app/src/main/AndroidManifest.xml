@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:name=".MomentumApplication"
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Momentum"
+        android:usesCleartextTraffic="true">
+        <!-- usesCleartextTraffic: the dev backend (10.0.2.2 / LAN) has no TLS.
+             Scope this via a network security config, or remove entirely,
+             before any real deployment. -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Momentum">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

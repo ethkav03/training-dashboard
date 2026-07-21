@@ -42,6 +42,9 @@ training-dashboard/
         ├── api/                # typed axios wrappers, one file per resource
         ├── hooks/              # TanStack Query hooks, one file per resource
         └── context/AuthContext.tsx
+android/                        # standalone Kotlin/Gradle project -- NOT an npm
+└── app/src/main/kotlin/...     # workspace, opened separately in Android Studio;
+                                 # see "Native Android app" below
 ```
 
 `packages/shared` holds enums (`ActivityType`, `GoalStatus`, etc.) and DTO
@@ -92,6 +95,75 @@ fixed `dev@momentum.local` user and returns a token directly, with no Google
 round-trip. It's compiled out whenever `NODE_ENV=production`
 (`backend/src/routes/auth.routes.ts`) — it exists so the app is fully
 explorable before a developer has set up Google Cloud OAuth credentials.
+
+**Mobile auth is a separate exchange, not a repeat of the browser flow.** The
+Android app can't do a redirect-based OAuth dance the way a browser can, so it
+does native Google Sign-In via Credential Manager to get a Google ID token,
+then `POST`s it to `/api/auth/google/mobile`, which verifies it server-side
+(`google-auth-library`'s `OAuth2Client.verifyIdToken`, audience = the same web
+`GOOGLE_CLIENT_ID`) and returns the same JWT shape as the web callback — see
+[api-reference.md](./api-reference.md). Both flows call the same
+`upsertUserFromGoogleIdentity()`, so there's one user-upsert implementation
+behind two different entry points.
+
+## Native Android app
+
+`android/` — a standalone Kotlin/Gradle project, sibling to `backend/` and
+`frontend/`, **not** part of the root `package.json` workspaces and untouched
+by `npm install`/Docker Compose. Opened separately in Android Studio.
+
+**Why it exists at all:** the product spec's Google Fit integration is a dead
+end (see the top of this doc and [roadmap.md](./roadmap.md)) — its intended
+replacement, Android Health Connect, is on-device-only with no cloud API a
+backend can call. Getting that data into Momentum genuinely requires a native
+app running on the device, not a web feature.
+
+```
+android/
+├── app/build.gradle.kts          # minSdk 26 (Health Connect client library floor)
+└── app/src/main/kotlin/com/momentum/android/
+    ├── MainActivity.kt            # single Activity, Compose content, branches on auth state
+    ├── auth/
+    │   ├── GoogleSignInManager.kt  # Credential Manager -> Google ID token
+    │   ├── AuthRepository.kt       # exchanges ID token for a Momentum JWT, stores it
+    │   ├── AuthViewModel.kt        # UI state, ViewModelProvider.Factory (constructs its own deps)
+    │   └── TokenStore.kt           # EncryptedSharedPreferences, not plain SharedPreferences
+    ├── network/
+    │   ├── ApiClient.kt            # Retrofit + OkHttp + kotlinx-serialization, Bearer interceptor
+    │   └── MomentumApi.kt          # Retrofit interface + @Serializable request/response models
+    └── ui/                         # Compose + Material3: LoginScreen, SyncScreen, theme/
+```
+
+This sprint (auth scaffold) is deliberately narrow: sign in, store the token,
+show the signed-in user's name via `GET /users/me`. No Health Connect
+integration yet — that's the next two sprints (permission flow + manual sync,
+then `WorkManager` periodic incremental sync).
+
+**Configuration** mirrors the backend/frontend `.env` pattern:
+`android/local.properties` (gitignored) holds `GOOGLE_WEB_CLIENT_ID` (the same
+value as `backend/.env`'s `GOOGLE_CLIENT_ID` — Credential Manager's
+`setServerClientId` must reference the **web** client for the backend's
+`verifyIdToken` audience check to pass) and `API_BASE_URL`, documented in
+`android/local.properties.example`. Getting Credential Manager's Google
+Sign-In working also requires registering a **separate Android-type** OAuth
+client in the same Google Cloud project (keyed by the app's SHA-1 signing
+fingerprint) alongside the existing web client — verify the exact console
+click-path at setup time; this project doesn't attempt to script that part.
+
+**Networking base URL** depends on how the app reaches the Docker-hosted
+backend: the standard Android emulator uses `10.0.2.2` (its alias for the
+host's `localhost`) — the default in `build.gradle.kts`; a real device via USB
+should instead run `adb reverse tcp:4000 tcp:4000` and use `localhost:4000`;
+a real device over Wi-Fi needs the host's actual LAN IP plus a Windows
+Firewall inbound rule for port 4000 (Docker already publishes the port, so the
+firewall is the more likely blocker on this host).
+
+**A note on verification:** this Kotlin/Gradle project was written carefully
+by hand, following current Android/Compose/Credential-Manager API shapes, but
+has not been compiled or run — there's no Android SDK, Gradle, or emulator in
+the environment this was built in. Opening it in Android Studio (which can
+generate the Gradle wrapper on first open) is the first real build/verify
+step, not this document.
 
 ## Containerization
 

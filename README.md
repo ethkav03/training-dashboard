@@ -78,6 +78,25 @@ with Google":
    `GOOGLE_CLIENT_SECRET`, then `docker compose up -d --build backend` (or
    restart the backend if running on the host) to pick them up.
 
+## Native Android app (optional, in progress)
+
+`android/` is a separate Kotlin/Gradle project (Health Connect integration —
+see [`docs/architecture.md`](./docs/architecture.md#native-android-app) for
+why it exists) — **not** part of this repo's npm workspaces. Open it directly
+in Android Studio, not via this README's commands:
+
+1. Android Studio → Open → select the `android/` folder.
+2. Copy `android/local.properties.example` to `android/local.properties` and
+   fill in `GOOGLE_WEB_CLIENT_ID` (same value as `backend/.env`'s
+   `GOOGLE_CLIENT_ID`) — see the architecture doc for the extra Google Cloud
+   Console step this needs (a separate Android-type OAuth client).
+3. Run on an emulator or device. The default `API_BASE_URL` targets the
+   standard emulator; see the architecture doc for real-device networking.
+
+This part of the project has been written but not yet compiled/run in this
+environment (no Android SDK or emulator available where it was built) —
+Android Studio's build is the first real verification step.
+
 ## Notes for local development
 
 - Postgres runs on host port **5434**, not 5432 — a different Postgres

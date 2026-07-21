@@ -1,0 +1,18 @@
+# Copy this file to local.properties (gitignored, per-machine) and fill in
+# real values. Android Studio also writes sdk.dir into local.properties
+# automatically the first time you open the project -- leave that line alone.
+
+# The same Google OAuth Web Client ID already configured in backend/.env as
+# GOOGLE_CLIENT_ID. Credential Manager's Google Sign-In requests an ID token
+# whose audience must match this value, or the backend's verifyIdToken call
+# will reject it. See docs/architecture.md#native-android-app for the
+# Google Cloud Console setup steps (registering an Android OAuth client with
+# this app's SHA-1 fingerprint, alongside the existing web client).
+GOOGLE_WEB_CLIENT_ID=
+
+# Defaults to the standard Android emulator's alias for the host machine's
+# localhost. For a real device over USB, run `adb reverse tcp:4000 tcp:4000`
+# and use http://localhost:4000/api instead. For a real device over Wi-Fi,
+# use the host machine's LAN IP and ensure Windows Firewall allows inbound
+# connections on port 4000.
+API_BASE_URL=http://10.0.2.2:4000/api

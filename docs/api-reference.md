@@ -13,6 +13,7 @@ page lists routes and intent, not full field-level schemas.
 | GET | `/auth/google/callback` | OAuth callback; redirects to frontend with a JWT. |
 | POST | `/auth/dev-login` | Dev-only bypass — issues a token for a fixed local user. Disabled when `NODE_ENV=production`. |
 | GET | `/auth/status` | `{ googleOAuthConfigured: boolean }` — lets the login page hide the Google button if unconfigured. |
+| POST | `/auth/google/mobile` | Mobile Google Sign-In exchange: the Android app does native Google Sign-In (Credential Manager) to get a Google ID token, POSTs it here, and gets back the same JWT shape the web callback issues. Verifies the ID token server-side via `google-auth-library`'s `OAuth2Client.verifyIdToken` (audience = the same web `GOOGLE_CLIENT_ID`) and shares the exact same user-upsert as the web flow (`upsertUserFromGoogleIdentity`). 503 if Google OAuth isn't configured; 401 if the token fails verification. |
 | POST | `/auth/logout` | Stateless no-op (204) — the frontend just discards its token. |
 
 ## Users — `user.routes.ts`
