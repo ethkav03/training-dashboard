@@ -24,13 +24,25 @@ export function RecoveryTab() {
           <p className="mt-2 text-sm text-ink-muted">No recovery data logged today yet.</p>
         )}
         {today && (
-          <div className="mt-2 flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-semibold">{today.readinessScore}</div>
-              <ReadinessBadge level={today.readinessLevel} />
+          <>
+            <div className="mt-2 grid grid-cols-3 gap-3">
+              <div>
+                <div className="text-xs text-ink-secondary">Recovery</div>
+                <div className="text-2xl font-semibold">{today.readinessScore}</div>
+                <ReadinessBadge level={today.readinessLevel} />
+              </div>
+              <div>
+                <div className="text-xs text-ink-secondary">Sleep</div>
+                <div className="text-2xl font-semibold">{today.sleepScore ?? "—"}</div>
+                {today.sleepHours != null && <div className="text-xs text-ink-muted">{today.sleepHours}h</div>}
+              </div>
+              <div>
+                <div className="text-xs text-ink-secondary">Yesterday's strain</div>
+                <div className="text-2xl font-semibold">{today.strain != null ? today.strain.toFixed(1) : "—"}</div>
+              </div>
             </div>
-            <p className="max-w-xs text-right text-sm text-ink-secondary">{today.recommendation}</p>
-          </div>
+            <p className="mt-3 text-sm text-ink-secondary">{today.recommendation}</p>
+          </>
         )}
       </Card>
 
@@ -48,9 +60,19 @@ export function RecoveryTab() {
                   {r.soreness != null && ` · soreness ${r.soreness}/5`}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-semibold">{r.readinessScore}</div>
-                <ReadinessBadge level={r.readinessLevel} />
+              <div className="flex items-center gap-4 text-right">
+                <div>
+                  <div className="text-xs text-ink-muted">Sleep</div>
+                  <div className="font-medium">{r.sleepScore ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink-muted">Strain</div>
+                  <div className="font-medium">{r.strain != null ? r.strain.toFixed(1) : "—"}</div>
+                </div>
+                <div>
+                  <div className="font-semibold">{r.readinessScore}</div>
+                  <ReadinessBadge level={r.readinessLevel} />
+                </div>
               </div>
             </div>
           ))}

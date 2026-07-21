@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { NutritionEntryDto } from "@momentum/shared";
-import { EnergyBalanceGranularity } from "@momentum/shared";
+import { EnergyBalanceGranularity, MealType } from "@momentum/shared";
 import { clsx } from "clsx";
 import {
   useEnergyBalanceSeries,
@@ -33,6 +33,13 @@ const GRANULARITY_TABS: { value: EnergyBalanceGranularity; label: string }[] = [
   { value: EnergyBalanceGranularity.YEAR, label: "Year" },
 ];
 
+const MEAL_SECTIONS: { type: MealType; label: string }[] = [
+  { type: MealType.BREAKFAST, label: "Breakfast" },
+  { type: MealType.LUNCH, label: "Lunch" },
+  { type: MealType.DINNER, label: "Dinner" },
+  { type: MealType.SNACKS, label: "Snacks" },
+];
+
 export function FuelTab() {
   const { data: summary, isLoading: summaryLoading } = useNutritionSummary();
   const { data: entries, isLoading: entriesLoading } = useNutritionEntries({
@@ -41,7 +48,13 @@ export function FuelTab() {
   });
   const deleteMutation = useDeleteNutritionEntry();
   const [showForm, setShowForm] = useState(false);
+  const [formDefaultMealType, setFormDefaultMealType] = useState<MealType | undefined>(undefined);
   const [editingEntry, setEditingEntry] = useState<NutritionEntryDto | null>(null);
+
+  function openLogForm(mealType?: MealType) {
+    setFormDefaultMealType(mealType);
+    setShowForm(true);
+  }
   const [granularity, setGranularity] = useState<EnergyBalanceGranularity>(EnergyBalanceGranularity.DAY);
   const { data: series } = useEnergyBalanceSeries(granularity);
 
@@ -51,7 +64,7 @@ export function FuelTab() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
-        <Button size="sm" onClick={() => setShowForm(true)}>
+        <Button size="sm" onClick={() => openLogForm()}>
           Log meal
         </Button>
       </div>
@@ -170,38 +183,64 @@ export function FuelTab() {
 
       <Card>
         <CardTitle>Today's meals</CardTitle>
-        <div className="mt-3 flex flex-col divide-y divide-hairline">
-          {!entriesLoading && entries?.length === 0 && (
-            <p className="py-6 text-center text-sm text-ink-muted">No meals logged today yet.</p>
-          )}
-          {entries?.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between py-2.5 text-sm">
-              <div>
-                <div className="font-medium text-ink-primary">{entry.mealName || "Meal"}</div>
-                <div className="text-xs text-ink-secondary">
-                  {entry.calories} kcal
-                  {entry.proteinG != null && ` · ${entry.proteinG}g protein`}
-                  {entry.carbsG != null && ` · ${entry.carbsG}g carbs`}
-                  {entry.fatG != null && ` · ${entry.fatG}g fat`}
+        {!entriesLoading && entries?.length === 0 && (
+          <p className="mt-3 py-3 text-center text-sm text-ink-muted">No meals logged today yet.</p>
+        )}
+        <div className="mt-2 flex flex-col divide-y divide-hairline">
+          {MEAL_SECTIONS.map((section) => {
+            const items = entries?.filter((e) => e.mealType === section.type) ?? [];
+            const subtotal = items.reduce((sum, e) => sum + e.calories, 0);
+            return (
+              <div key={section.type} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-ink-primary">{section.label}</h3>
+                  <div className="flex items-center gap-3">
+                    {items.length > 0 && <span className="text-xs text-ink-secondary">{subtotal} kcal</span>}
+                    <button
+                      className="text-xs text-series-2 hover:underline"
+                      onClick={() => openLogForm(section.type)}
+                    >
+                      + Add
+                    </button>
+                  </div>
                 </div>
+                {items.length === 0 ? (
+                  <p className="mt-1.5 text-xs text-ink-muted">Nothing logged yet.</p>
+                ) : (
+                  <div className="mt-1.5 flex flex-col divide-y divide-hairline">
+                    {items.map((entry) => (
+                      <div key={entry.id} className="flex items-center justify-between py-2 text-sm">
+                        <div>
+                          <div className="font-medium text-ink-primary">{entry.mealName || "Item"}</div>
+                          <div className="text-xs text-ink-secondary">
+                            {entry.calories} kcal
+                            {entry.proteinG != null && ` · ${entry.proteinG}g protein`}
+                            {entry.carbsG != null && ` · ${entry.carbsG}g carbs`}
+                            {entry.fatG != null && ` · ${entry.fatG}g fat`}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs">
+                          <button className="text-ink-muted hover:text-ink-primary" onClick={() => setEditingEntry(entry)}>
+                            Edit
+                          </button>
+                          <button
+                            className="text-ink-muted hover:text-status-critical"
+                            onClick={() => deleteMutation.mutate(entry.id)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-3 text-xs">
-                <button className="text-ink-muted hover:text-ink-primary" onClick={() => setEditingEntry(entry)}>
-                  Edit
-                </button>
-                <button
-                  className="text-ink-muted hover:text-status-critical"
-                  onClick={() => deleteMutation.mutate(entry.id)}
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
-      {showForm && <NutritionEntryForm onClose={() => setShowForm(false)} />}
+      {showForm && <NutritionEntryForm defaultMealType={formDefaultMealType} onClose={() => setShowForm(false)} />}
       {editingEntry && <NutritionEntryForm entry={editingEntry} onClose={() => setEditingEntry(null)} />}
     </div>
   );

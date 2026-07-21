@@ -194,6 +194,34 @@ ships no pre-computed score of its own — raw sensor data only — so our
 formula is the only thing that *can* produce one for it, and doing so scores
 those days on the same yardstick as manual entries.
 
+**`sleepScore` and `strain` are pass-through headline metrics, not inputs to
+`computeReadiness()`.** WHOOP's own app shows three numbers every morning —
+recovery, sleep, strain — and `RecoveryRecord` stores all three as independent
+fields rather than folding sleep/strain into the readiness formula above. For
+WHOOP-sourced rows:
+
+```
+sleepScore = sleep.score.sleep_performance_percentage        (0-100, WHOOP's own sleep score)
+strain     = previous completed cycle's score.strain, rounded to 1 decimal  ("yesterday's strain")
+```
+
+The strain lookup is deliberately the *previous* cycle, not the current one:
+WHOOP's own convention is that "yesterday's strain" is the exertion figure
+that's actually final by the time you check recovery in the morning — the
+current cycle is still accumulating strain throughout today, so showing it
+next to this morning's recovery score would pair a settled number with a
+half-finished one. `whoopService.ts` fetches `/v2/cycle` alongside recovery/
+sleep/workout, sorts cycles chronologically, and for each recovery's
+`cycle_id` looks up the cycle immediately before it in that ordering — not
+some fixed "cycle_id − 1," since cycle ids aren't guaranteed contiguous. If
+that previous cycle isn't `SCORED` yet (still in progress, or the very first
+cycle on record), `strain` is left `null` rather than guessed at.
+
+Manual entries can log `sleepScore`/`strain` directly too (a user without a
+wearable who still wants to track the same three numbers by hand), and both
+are simply `null` for Health-Connect-sourced rows, which have no equivalent
+metric to report.
+
 ---
 
 ## WHOOP workouts

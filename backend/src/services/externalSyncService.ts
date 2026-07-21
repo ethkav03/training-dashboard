@@ -104,6 +104,8 @@ interface RecoveryRecordInput {
   hrv?: number | null;
   soreness?: number | null;
   energy?: number | null;
+  sleepScore?: number | null;
+  strain?: number | null;
   readinessScore: number;
   readinessLevel: ReadinessLevel;
 }
@@ -125,6 +127,8 @@ export async function upsertExternalRecoveryRecord(input: RecoveryRecordInput): 
         hrv: input.hrv,
         soreness: input.soreness,
         energy: input.energy,
+        sleepScore: input.sleepScore,
+        strain: input.strain,
         readinessScore: input.readinessScore,
         readinessLevel: input.readinessLevel as never,
       },
@@ -143,6 +147,8 @@ export async function upsertExternalRecoveryRecord(input: RecoveryRecordInput): 
       hrv: input.hrv,
       soreness: input.soreness,
       energy: input.energy,
+      sleepScore: input.sleepScore,
+      strain: input.strain,
       readinessScore: input.readinessScore,
       readinessLevel: input.readinessLevel as never,
     },

@@ -38,9 +38,22 @@ export function TodayPage() {
             <CardTitle>Readiness</CardTitle>
             {data.readiness ? (
               <div className="mt-2 flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-3xl font-semibold">{data.readiness.readinessScore}</div>
-                  <ReadinessBadge level={data.readiness.readinessLevel} />
+                <div className="flex gap-6">
+                  <div>
+                    <div className="text-xs text-ink-secondary">Recovery</div>
+                    <div className="text-3xl font-semibold">{data.readiness.readinessScore}</div>
+                    <ReadinessBadge level={data.readiness.readinessLevel} />
+                  </div>
+                  <div>
+                    <div className="text-xs text-ink-secondary">Sleep</div>
+                    <div className="text-3xl font-semibold">{data.readiness.sleepScore ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-ink-secondary">Yesterday's strain</div>
+                    <div className="text-3xl font-semibold">
+                      {data.readiness.strain != null ? data.readiness.strain.toFixed(1) : "—"}
+                    </div>
+                  </div>
                 </div>
                 <p className="max-w-sm text-right text-sm text-ink-secondary">{data.readiness.recommendation}</p>
               </div>

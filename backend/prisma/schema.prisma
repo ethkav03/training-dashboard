@@ -91,6 +91,13 @@ enum AchievementType {
   WEEKLY_COMPLETION
 }
 
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACKS
+}
+
 model User {
   id                     String           @id @default(cuid())
   googleId               String           @unique
@@ -136,6 +143,7 @@ model NutritionEntry {
   userId           String
   user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   date             DateTime
+  mealType         MealType   @default(SNACKS)
   mealName         String?
   calories         Int
   proteinG         Float?
@@ -231,6 +239,8 @@ model RecoveryRecord {
   hrv              Float?
   soreness         Int?
   energy           Int?
+  sleepScore       Int?
+  strain           Float?
   readinessScore   Int
   readinessLevel   ReadinessLevel
   notes            String?

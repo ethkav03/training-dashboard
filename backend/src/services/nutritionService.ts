@@ -6,6 +6,7 @@ export function toNutritionEntryDto(entry: NutritionEntry): NutritionEntryDto {
   return {
     id: entry.id,
     date: entry.date.toISOString(),
+    mealType: entry.mealType as NutritionEntryDto["mealType"],
     mealName: entry.mealName,
     calories: entry.calories,
     proteinG: entry.proteinG,

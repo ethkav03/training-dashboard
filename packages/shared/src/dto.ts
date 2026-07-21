@@ -7,6 +7,7 @@ import type {
   GoalType,
   IntegrationProvider,
   MatchResult,
+  MealType,
   OnboardingStatus,
   ReadinessLevel,
   SyncStatus,
@@ -68,6 +69,7 @@ export interface WeightTrendDto {
 export interface NutritionEntryDto {
   id: string;
   date: string;
+  mealType: MealType;
   mealName: string | null;
   calories: number;
   proteinG: number | null;
@@ -166,6 +168,8 @@ export interface RecoveryRecordDto {
   hrv: number | null;
   soreness: number | null;
   energy: number | null;
+  sleepScore: number | null;
+  strain: number | null;
   readinessScore: number;
   readinessLevel: ReadinessLevel;
   recommendation: string;

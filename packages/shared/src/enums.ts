@@ -94,6 +94,14 @@ export const AchievementType = {
 } as const;
 export type AchievementType = (typeof AchievementType)[keyof typeof AchievementType];
 
+export const MealType = {
+  BREAKFAST: "BREAKFAST",
+  LUNCH: "LUNCH",
+  DINNER: "DINNER",
+  SNACKS: "SNACKS",
+} as const;
+export type MealType = (typeof MealType)[keyof typeof MealType];
+
 export const EnergyBalanceGranularity = {
   DAY: "day",
   WEEK: "week",

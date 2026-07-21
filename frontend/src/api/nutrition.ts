@@ -1,4 +1,4 @@
-import type { EnergyBalanceGranularity, EnergyBalancePointDto, NutritionEntryDto, NutritionSummaryDto } from "@momentum/shared";
+import type { EnergyBalanceGranularity, EnergyBalancePointDto, MealType, NutritionEntryDto, NutritionSummaryDto } from "@momentum/shared";
 import { apiClient } from "./client.js";
 
 export async function getNutritionSummary(date?: string): Promise<NutritionSummaryDto> {
@@ -18,6 +18,7 @@ export async function getNutritionEntries(params?: { from?: string; to?: string 
 
 export async function createNutritionEntry(payload: {
   date: string;
+  mealType: MealType;
   mealName?: string;
   calories: number;
   proteinG?: number;
@@ -33,6 +34,7 @@ export async function updateNutritionEntry(
   id: string,
   payload: {
     date?: string;
+    mealType?: MealType;
     mealName?: string;
     calories?: number;
     proteinG?: number;

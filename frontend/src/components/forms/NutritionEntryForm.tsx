@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { NutritionEntryDto } from "@momentum/shared";
+import { MealType } from "@momentum/shared";
 import { Modal } from "../ui/Modal.js";
 import { Button } from "../ui/Button.js";
 import { useCreateNutritionEntry, useUpdateNutritionEntry } from "../../hooks/useNutrition.js";
@@ -7,7 +8,32 @@ import { useCreateNutritionEntry, useUpdateNutritionEntry } from "../../hooks/us
 const inputClass =
   "w-full rounded-lg border border-hairline bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-2";
 
-export function NutritionEntryForm({ onClose, entry }: { onClose: () => void; entry?: NutritionEntryDto }) {
+const MEAL_TYPE_LABELS: Record<MealType, string> = {
+  BREAKFAST: "Breakfast",
+  LUNCH: "Lunch",
+  DINNER: "Dinner",
+  SNACKS: "Snacks",
+};
+
+/** Guesses the meal category from the current time, MyFitnessPal-style. */
+function suggestMealType(): MealType {
+  const hour = new Date().getHours();
+  if (hour < 11) return MealType.BREAKFAST;
+  if (hour < 15) return MealType.LUNCH;
+  if (hour < 21) return MealType.DINNER;
+  return MealType.SNACKS;
+}
+
+export function NutritionEntryForm({
+  onClose,
+  entry,
+  defaultMealType,
+}: {
+  onClose: () => void;
+  entry?: NutritionEntryDto;
+  defaultMealType?: MealType;
+}) {
+  const [mealType, setMealType] = useState<MealType>(entry?.mealType ?? defaultMealType ?? suggestMealType());
   const [mealName, setMealName] = useState(entry?.mealName ?? "");
   const [calories, setCalories] = useState(entry ? String(entry.calories) : "");
   const [proteinG, setProteinG] = useState(entry?.proteinG != null ? String(entry.proteinG) : "");
@@ -20,6 +46,7 @@ export function NutritionEntryForm({ onClose, entry }: { onClose: () => void; en
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const payload = {
+      mealType,
       mealName: mealName || undefined,
       calories: Number(calories),
       proteinG: proteinG ? Number(proteinG) : undefined,
@@ -38,13 +65,23 @@ export function NutritionEntryForm({ onClose, entry }: { onClose: () => void; en
     <Modal title={entry ? "Edit meal" : "Log meal"} onClose={onClose}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <label className="text-sm">
-          <span className="mb-1 block text-ink-secondary">Meal name (optional)</span>
+          <span className="mb-1 block text-ink-secondary">Meal</span>
+          <select className={inputClass} value={mealType} onChange={(e) => setMealType(e.target.value as MealType)}>
+            {Object.entries(MEAL_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-ink-secondary">Food (optional)</span>
           <input
             autoFocus
             className={inputClass}
             value={mealName}
             onChange={(e) => setMealName(e.target.value)}
-            placeholder="Lunch"
+            placeholder="Grilled chicken salad"
           />
         </label>
         <label className="text-sm">

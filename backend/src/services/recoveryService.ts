@@ -79,6 +79,8 @@ export function toRecoveryRecordDto(record: RecoveryRecord): RecoveryRecordDto {
     hrv: record.hrv,
     soreness: record.soreness,
     energy: record.energy,
+    sleepScore: record.sleepScore,
+    strain: record.strain,
     readinessScore: record.readinessScore,
     readinessLevel: level,
     recommendation: RECOMMENDATIONS[level],
@@ -112,7 +114,7 @@ function dayStart(date: Date): Date {
 export async function upsertRecoveryRecord(
   userId: string,
   date: Date,
-  inputs: ReadinessInputs & { notes?: string }
+  inputs: ReadinessInputs & { notes?: string; sleepScore?: number | null; strain?: number | null }
 ): Promise<RecoveryRecord> {
   const day = dayStart(date);
   const baseline = await getBaseline(userId, day);
@@ -127,6 +129,8 @@ export async function upsertRecoveryRecord(
       hrv: inputs.hrv,
       soreness: inputs.soreness,
       energy: inputs.energy,
+      sleepScore: inputs.sleepScore,
+      strain: inputs.strain,
       notes: inputs.notes,
       readinessScore: score,
       readinessLevel: level,
@@ -141,6 +145,8 @@ export async function upsertRecoveryRecord(
       hrv: inputs.hrv,
       soreness: inputs.soreness,
       energy: inputs.energy,
+      sleepScore: inputs.sleepScore,
+      strain: inputs.strain,
       notes: inputs.notes,
       readinessScore: score,
       readinessLevel: level,

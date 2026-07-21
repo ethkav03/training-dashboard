@@ -57,8 +57,14 @@ computed on read.
 ## NutritionEntry
 
 One row per logged meal (`mealName` optional — "just log the calories" is a
-valid use case). Daily/weekly aggregation happens in `nutritionService.ts`,
-not on this table.
+valid use case). `mealType` (`BREAKFAST | LUNCH | DINNER | SNACKS`, matching
+MyFitnessPal's diary layout) categorizes which section of the day it belongs
+to, independent of `mealName`'s free-text description of what was actually
+eaten; it defaults to `SNACKS` (existing rows were backfilled to this default
+when the column was added). The frontend suggests a default based on time of
+day when logging (before 11am → Breakfast, 11am-3pm → Lunch, 3pm-9pm →
+Dinner, else Snacks), but the user can always override it. Daily/weekly
+aggregation happens in `nutritionService.ts`, not on this table.
 
 ## TrainingSession + Workout + WorkoutExercise + WorkoutSet
 
@@ -102,6 +108,17 @@ are computed and persisted at write time by `recoveryService.ts` — see
 [calculations.md](./calculations.md#readiness-score) for the exact formula.
 `hrv` is HRV-RMSSD in milliseconds (WHOOP's native unit; manual entries use
 the same unit for consistency).
+
+`sleepScore` (0-100) and `strain` (0-21, one decimal place) are the other two
+headline numbers WHOOP's own app shows alongside its recovery score every
+morning, stored as direct pass-through metrics — they do **not** feed into
+`computeReadiness()`, which remains exactly the formula documented in
+calculations.md. For WHOOP-sourced records, `sleepScore` is the paired
+sleep's own `sleep_performance_percentage` and `strain` is the *previous*
+completed cycle's strain (see calculations.md for why "yesterday's," not
+today's). Both are optional manual-entry fields too (for a user without a
+wearable who still wants to log the same three numbers by hand), and both
+stay `null` for Health-Connect-sourced rows, which have no equivalent metric.
 
 **Not every source runs through `computeReadiness()`.** Manually-logged and
 Health-Connect-sourced days do (neither has a pre-computed score of its own).

@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { MealType } from "@momentum/shared";
 
 export const createNutritionEntrySchema = z.object({
   date: z.string().datetime(),
+  mealType: z.nativeEnum(MealType).default(MealType.SNACKS),
   mealName: z.string().optional(),
   calories: z.number().int().nonnegative(),
   proteinG: z.number().nonnegative().optional(),

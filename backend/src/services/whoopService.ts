@@ -203,6 +203,17 @@ interface WhoopSleep {
       total_slow_wave_sleep_time_milli: number;
       total_rem_sleep_time_milli: number;
     };
+    sleep_performance_percentage: number;
+  };
+}
+
+interface WhoopCycle {
+  id: number;
+  start: string;
+  end: string | null;
+  score_state: string;
+  score?: {
+    strain: number;
   };
 }
 
@@ -309,13 +320,32 @@ export async function syncWhoopData(userId: string): Promise<WhoopSyncResultDto>
     // after connecting will correctly show nothing for today yet.
     const since = connection.lastSyncAt ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [recoveries, sleeps, workouts] = await Promise.all([
+    const [recoveries, sleeps, workouts, cycles] = await Promise.all([
       fetchAllPages<WhoopRecovery>("/v2/recovery", accessToken, since),
       fetchAllPages<WhoopSleep>("/v2/activity/sleep", accessToken, since),
       fetchAllPages<WhoopWorkout>("/v2/activity/workout", accessToken, since),
+      fetchAllPages<WhoopCycle>("/v2/cycle", accessToken, since),
     ]);
 
     const sleepById = new Map(sleeps.map((s) => [s.id, s]));
+
+    // WHOOP's app shows a fresh recovery alongside *yesterday's* (the just-
+    // completed) cycle strain, not the still-accumulating current cycle --
+    // so for a given recovery we look up its own cycle's position in
+    // chronological order and take the strain of the cycle immediately
+    // before it.
+    const cyclesByStart = [...cycles].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+    );
+    const cycleIndexById = new Map(cyclesByStart.map((c, i) => [c.id, i]));
+
+    function yesterdaysStrain(cycleId: number): number | null {
+      const index = cycleIndexById.get(cycleId);
+      if (index == null || index === 0) return null;
+      const previousCycle = cyclesByStart[index - 1];
+      if (previousCycle.score_state !== "SCORED" || !previousCycle.score) return null;
+      return Math.round(previousCycle.score.strain * 10) / 10;
+    }
 
     let recoverySynced = 0;
     let recoverySkipped = 0;
@@ -323,13 +353,14 @@ export async function syncWhoopData(userId: string): Promise<WhoopSyncResultDto>
       if (recovery.score_state !== "SCORED" || !recovery.score) continue;
 
       const sleep = sleepById.get(recovery.sleep_id);
-      const sleepHours =
-        sleep?.score_state === "SCORED" && sleep.score
-          ? (sleep.score.stage_summary.total_light_sleep_time_milli +
-              sleep.score.stage_summary.total_slow_wave_sleep_time_milli +
-              sleep.score.stage_summary.total_rem_sleep_time_milli) /
-            3_600_000
-          : null;
+      const sleepScored = sleep?.score_state === "SCORED" && sleep.score;
+      const sleepHours = sleepScored
+        ? (sleep!.score!.stage_summary.total_light_sleep_time_milli +
+            sleep!.score!.stage_summary.total_slow_wave_sleep_time_milli +
+            sleep!.score!.stage_summary.total_rem_sleep_time_milli) /
+          3_600_000
+        : null;
+      const sleepScore = sleepScored ? Math.round(sleep!.score!.sleep_performance_percentage) : null;
 
       const readinessScore = Math.round(recovery.score.recovery_score);
       const result: ExternalSyncResult = await upsertExternalRecoveryRecord({
@@ -342,6 +373,8 @@ export async function syncWhoopData(userId: string): Promise<WhoopSyncResultDto>
         // merged into one RecoveryRecord row instead of landing a day apart.
         date: dayStart(new Date(recovery.created_at)),
         sleepHours,
+        sleepScore,
+        strain: yesterdaysStrain(recovery.cycle_id),
         restingHr: Math.round(recovery.score.resting_heart_rate),
         hrv: recovery.score.hrv_rmssd_milli,
         readinessScore,

@@ -18,6 +18,8 @@ export async function logRecovery(payload: {
   hrv?: number;
   soreness?: number;
   energy?: number;
+  sleepScore?: number;
+  strain?: number;
   notes?: string;
 }): Promise<RecoveryRecordDto> {
   const { data } = await apiClient.post("/recovery", payload);

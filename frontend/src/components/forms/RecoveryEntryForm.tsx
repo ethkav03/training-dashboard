@@ -13,6 +13,8 @@ export function RecoveryEntryForm({ onClose }: { onClose: () => void }) {
   const [hrv, setHrv] = useState("");
   const [soreness, setSoreness] = useState("3");
   const [energy, setEnergy] = useState("3");
+  const [sleepScore, setSleepScore] = useState("");
+  const [strain, setStrain] = useState("");
   const mutation = useLogRecovery();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -24,6 +26,8 @@ export function RecoveryEntryForm({ onClose }: { onClose: () => void }) {
       hrv: hrv ? Number(hrv) : undefined,
       soreness: Number(soreness),
       energy: Number(energy),
+      sleepScore: sleepScore ? Number(sleepScore) : undefined,
+      strain: strain ? Number(strain) : undefined,
     });
     onClose();
   }
@@ -31,10 +35,38 @@ export function RecoveryEntryForm({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Log today's recovery" onClose={onClose}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-sm">
+            <span className="mb-1 block text-ink-secondary">Sleep score /100 (optional)</span>
+            <input
+              autoFocus
+              className={inputClass}
+              type="number"
+              min={0}
+              max={100}
+              value={sleepScore}
+              onChange={(e) => setSleepScore(e.target.value)}
+              placeholder="e.g. from WHOOP"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-ink-secondary">Yesterday's strain (optional)</span>
+            <input
+              className={inputClass}
+              type="number"
+              min={0}
+              max={21}
+              step="0.1"
+              value={strain}
+              onChange={(e) => setStrain(e.target.value)}
+              placeholder="0.0-21.0"
+            />
+          </label>
+        </div>
+
         <label className="text-sm">
           <span className="mb-1 block text-ink-secondary">Sleep duration (hours)</span>
           <input
-            autoFocus
             className={inputClass}
             type="number"
             step="0.25"
