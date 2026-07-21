@@ -48,7 +48,7 @@ npm run prisma:studio   # open Prisma Studio against the running DB
 
 ```bash
 npm install
-docker compose up -d postgres      # just the database, on host port 5433
+docker compose up -d postgres      # just the database, on host port 5434
 cd backend && npx prisma migrate deploy && cd ..
 npm run dev                        # runs backend + frontend directly on the host
 ```
@@ -80,7 +80,7 @@ with Google":
 
 ## Notes for local development
 
-- Postgres runs on host port **5433**, not 5432 — a different Postgres
+- Postgres runs on host port **5434**, not 5432 — a different Postgres
   service may already be using 5432 on your machine. Inside the Docker
   network the backend reaches it on the standard port via the `postgres`
   service name; only the host-facing port is remapped.

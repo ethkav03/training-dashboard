@@ -101,7 +101,7 @@ edit.
 
 Two non-obvious fixes baked into the setup:
 
-- **Postgres runs on host port 5433, not 5432.** A native Postgres service
+- **Postgres runs on host port 5434, not 5432.** A native Postgres service
   already listening on 5432 on the host machine would otherwise silently
   intercept connections meant for the container (Prisma would connect
   successfully but to the wrong database, then fail auth). Inside the Docker

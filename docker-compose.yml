@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: momentum
       POSTGRES_DB: momentum
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - momentum-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +26,7 @@ services:
     env_file:
       - backend/.env
     environment:
-      # Overrides backend/.env's host-facing DATABASE_URL (localhost:5433, for
+      # Overrides backend/.env's host-facing DATABASE_URL (localhost:5434, for
       # running the backend directly on the host) with the in-network address
       # — containers reach postgres by service name on its container-internal port.
       DATABASE_URL: postgresql://momentum:momentum@postgres:5432/momentum
