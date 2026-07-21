@@ -1,11 +1,63 @@
-import { Card } from "../../components/ui/Card.js";
+import { useState } from "react";
+import { useRecoveryHistory, useRecoveryToday } from "../../hooks/useRecovery.js";
+import { RecoveryEntryForm } from "../../components/forms/RecoveryEntryForm.js";
+import { ReadinessBadge } from "../../components/cards/ReadinessBadge.js";
+import { Button } from "../../components/ui/Button.js";
+import { Card, CardTitle } from "../../components/ui/Card.js";
 
 export function RecoveryTab() {
+  const { data: today, isLoading } = useRecoveryToday();
+  const { data: history } = useRecoveryHistory();
+  const [showForm, setShowForm] = useState(false);
+
   return (
-    <Card>
-      <p className="text-sm text-ink-secondary">
-        Sleep, readiness and recovery logging arrive here in the Recovery sprint.
-      </p>
-    </Card>
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setShowForm(true)}>
+          {today ? "Update today's recovery" : "Log recovery"}
+        </Button>
+      </div>
+
+      <Card>
+        <CardTitle>Today's readiness</CardTitle>
+        {!isLoading && !today && (
+          <p className="mt-2 text-sm text-ink-muted">No recovery data logged today yet.</p>
+        )}
+        {today && (
+          <div className="mt-2 flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-semibold">{today.readinessScore}</div>
+              <ReadinessBadge level={today.readinessLevel} />
+            </div>
+            <p className="max-w-xs text-right text-sm text-ink-secondary">{today.recommendation}</p>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>History</CardTitle>
+        <div className="mt-3 flex flex-col divide-y divide-hairline">
+          {history?.length === 0 && <p className="py-6 text-center text-sm text-ink-muted">No history yet.</p>}
+          {history?.map((r) => (
+            <div key={r.id} className="flex items-center justify-between py-2.5 text-sm">
+              <div>
+                <div className="font-medium text-ink-primary">{new Date(r.date).toLocaleDateString()}</div>
+                <div className="text-xs text-ink-secondary">
+                  {r.sleepHours != null && `${r.sleepHours}h sleep`}
+                  {r.sleepQuality != null && ` · quality ${r.sleepQuality}/5`}
+                  {r.soreness != null && ` · soreness ${r.soreness}/5`}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-semibold">{r.readinessScore}</div>
+                <ReadinessBadge level={r.readinessLevel} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {showForm && <RecoveryEntryForm onClose={() => setShowForm(false)} />}
+    </div>
   );
 }
