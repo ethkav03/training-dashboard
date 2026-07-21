@@ -311,6 +311,28 @@ authenticated axios request first (returning `{ authorizeUrl }`), and only
 then does `window.location.href = authorizeUrl` for the actual WHOOP
 redirect.
 
+**Router mount order matters here, and got it wrong once.** `app.ts` mounts
+`/api/integrations`, `/api/integrations/whoop`, and
+`/api/integrations/health-connect` as three separate routers. Express matches
+`app.use()` mounts by path *prefix*, in registration order — `/api/integrations`
+is itself a prefix of the other two paths, so if it's registered first, every
+request under `/api/integrations/whoop/*` or `/api/integrations/health-connect/*`
+gets routed into `integrationsRouter` first. That router's blanket
+`integrationsRouter.use(requireAuth)` runs regardless of whether a route
+inside it actually matches — so a request that reaches it with no
+`Authorization` header fails there immediately and never falls through to
+`whoopRouter`/`healthConnectRouter` at all. This went unnoticed for a while
+because every *authenticated* request (`/connect`, `/sync`, `/disconnect`,
+all called via axios with a Bearer token already attached) still succeeds:
+`requireAuth` passes, no route matches inside `integrationsRouter`, and
+Express falls through to the next mount. WHOOP's own OAuth **callback**
+redirect is the one request in this whole flow that deliberately carries no
+Bearer token (see below) — so it was the one path that actually surfaced the
+bug, as a raw `{"error":"Unauthorized"}` instead of completing the connection.
+Fixed by mounting the two more specific routers before the general one — the
+rule going forward: **more specific `app.use()` paths must always be
+registered before less specific ones that share a prefix.**
+
 **The OAuth `state` parameter is a self-contained signed token
 (`signOAuthState`/`verifyOAuthState` in `backend/src/lib/jwt.ts`), not
 server-side session storage.** The backend's `nodemon` setup restarts on

@@ -40,8 +40,16 @@ app.use("/api/insights", insightsRouter);
 app.use("/api/timeline", timelineRouter);
 app.use("/api/achievements", achievementRouter);
 app.use("/api/dashboard", dashboardRouter);
-app.use("/api/integrations", integrationsRouter);
+// More specific mount paths must come first: Express matches app.use() mounts
+// by prefix in registration order, and /api/integrations is itself a prefix
+// of /api/integrations/whoop/* and /api/integrations/health-connect/*. With
+// the general router registered first, every request under those two
+// sub-paths -- including WHOOP's own OAuth callback redirect, which
+// deliberately carries no Bearer token -- was hitting integrationsRouter's
+// blanket requireAuth before ever reaching whoopRouter/healthConnectRouter,
+// failing with 401 instead of completing the callback.
 app.use("/api/integrations/whoop", whoopRouter);
 app.use("/api/integrations/health-connect", healthConnectRouter);
+app.use("/api/integrations", integrationsRouter);
 
 app.use(errorHandler);
