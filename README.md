@@ -78,6 +78,36 @@ with Google":
    `GOOGLE_CLIENT_SECRET`, then `docker compose up -d --build backend` (or
    restart the backend if running on the host) to pick them up.
 
+## WHOOP integration setup (optional)
+
+Connecting a real WHOOP account lets recovery, sleep, and workout data sync
+in automatically instead of being logged by hand — see
+[`docs/architecture.md`](./docs/architecture.md#integrations) for how the
+sync itself works.
+
+1. [developer.whoop.com](https://developer.whoop.com/) → sign in with your
+   WHOOP account → **Create an app**.
+2. Set its **Redirect URI** to `http://localhost:4000/api/integrations/whoop/callback`
+   (must match `WHOOP_REDIRECT_URI` below exactly, including the port).
+3. Request these scopes when configuring the app: `offline read:recovery
+   read:cycles read:sleep read:workout read:profile read:body_measurement`
+   (`offline` is what gets you a refresh token — without it WHOOP only issues
+   a short-lived access token and the connection silently stops syncing once
+   that expires).
+4. Copy the Client ID/Secret into `backend/.env` as `WHOOP_CLIENT_ID` /
+   `WHOOP_CLIENT_SECRET`, and set `ENCRYPTION_KEY` to a random 32-byte hex
+   string (`openssl rand -hex 32`) if you haven't already — WHOOP's tokens
+   are encrypted at rest using it.
+5. `docker compose up -d --build backend` (or restart the backend if running
+   on the host) to pick up the new env vars.
+6. In the app, go to **Settings → Integrations → Connect WHOOP**. This opens
+   WHOOP's own consent screen; approving it redirects you back to Settings
+   showing "Connected."
+7. Click **Sync now** to pull data immediately, or just wait — every visit to
+   Settings picks up the latest `lastSyncStatus`. A brand-new connection has
+   nothing to show until your first WHOOP recovery cycle actually closes
+   (typically the next morning) — that's expected, not a bug.
+
 ## Native Android app (optional, in progress)
 
 `android/` is a separate Kotlin/Gradle project (Health Connect integration —
@@ -92,6 +122,10 @@ in Android Studio, not via this README's commands:
    Console step this needs (a separate Android-type OAuth client).
 3. Run on an emulator or device. The default `API_BASE_URL` targets the
    standard emulator; see the architecture doc for real-device networking.
+4. Sign in, then grant the Health Connect permission prompt and tap **Sync
+   now** to pull weight/workout/sleep data into Momentum. If Health Connect
+   isn't installed (or needs updating) on the device/emulator, the app links
+   straight to its Play Store listing instead of just failing silently.
 
 This part of the project has been written but not yet compiled/run in this
 environment (no Android SDK or emulator available where it was built) —

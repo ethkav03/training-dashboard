@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.googleid)
 
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.health.connect.client)
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)

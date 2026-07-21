@@ -131,13 +131,61 @@ android/
     ├── network/
     │   ├── ApiClient.kt            # Retrofit + OkHttp + kotlinx-serialization, Bearer interceptor
     │   └── MomentumApi.kt          # Retrofit interface + @Serializable request/response models
+    ├── healthconnect/
+    │   ├── HealthConnectManager.kt     # SDK availability check, fixed permission set, permission contract
+    │   ├── HealthConnectRepository.kt  # bounded reads (weight/exercise/sleep) + per-session aggregates
+    │   ├── HealthConnectMapper.kt      # SDK records -> the exact JSON shape the sync endpoint expects
+    │   └── HealthConnectViewModel.kt   # UI state, ViewModelProvider.Factory (constructs its own deps)
     └── ui/                         # Compose + Material3: LoginScreen, SyncScreen, theme/
 ```
 
-This sprint (auth scaffold) is deliberately narrow: sign in, store the token,
-show the signed-in user's name via `GET /users/me`. No Health Connect
-integration yet — that's the next two sprints (permission flow + manual sync,
-then `WorkManager` periodic incremental sync).
+Auth (prior sprint) stayed deliberately narrow: sign in, store the token,
+show the signed-in user's name via `GET /users/me`. This sprint adds Health
+Connect: permission request + a manual "Sync now" that reads a bounded
+history and posts it to `POST /integrations/health-connect/sync`. Background
+sync (`WorkManager`, incremental changes-tokens) is still the next sprint —
+today's version only ever syncs when the user taps the button.
+
+**Health Connect read path**, `healthconnect/`:
+
+- `HealthConnectManager` checks `HealthConnectClient.getSdkStatus()` first —
+  the provider app can be missing or out of date on pre-Android-14 devices —
+  before ever touching `HealthConnectClient.getOrCreate()`, which throws if
+  it's not available. The client itself is built lazily so constructing the
+  manager (which happens as soon as the screen loads) can never crash on an
+  unsupported device; only an actual sync attempt can.
+- Permission set is fixed: steps, exercise, weight, heart rate, sleep (all
+  read-only). Steps is requested — completing the permission flow the
+  product spec describes — but isn't written anywhere; there's no column for
+  it in the current schema, so it's a roadmap item, not a bug.
+- `HealthConnectRepository` reads a **fixed 30-day trailing window** every
+  sync, not an incremental changes-token — that refinement is Sprint 13's
+  job. Re-sending already-synced records is safe: the backend's
+  `externalId`-based dedup (see [data-model.md](./data-model.md)) makes it a
+  no-op, just not bandwidth-efficient for a background job, which is exactly
+  why this manual-only version doesn't try to be one.
+- Exercise sessions carry no energy/heart-rate totals on the record itself —
+  Health Connect stores those as separate time-series records — so each
+  session gets its own `aggregate()` query scoped to that session's own
+  `[startTime, endTime]`. Calories use `ActiveCaloriesBurnedRecord`, not
+  `TotalCaloriesBurnedRecord` — the latter folds in resting metabolic rate for
+  the whole window, which would overcount "calories burned by this workout."
+- Sleep minutes are computed by summing only the stages actually asleep
+  (excluding awake-in-bed / out-of-bed stage types), falling back to the
+  full session span when a device reports no stage detail at all — see
+  [calculations.md](./calculations.md#readiness-score) for what happens to
+  that number once it reaches the backend (it runs through
+  `computeReadiness()`, same as any Health-Connect-sourced day).
+- `HealthConnectMapper`'s exercise-type lookup table is a hand-kept mirror of
+  `backend/src/services/healthConnectService.ts`'s
+  `EXERCISE_TYPE_TO_ACTIVITY_TYPE` — the two must be changed together. An
+  exercise type missing from both sides isn't a sync failure; it just maps to
+  `OTHER` server-side.
+- The manifest additions this needs: five `android.permission.health.READ_*`
+  permissions, a `<queries>` entry for Health Connect's package (so
+  `getSdkStatus()` can actually detect it pre-Android-14), and a
+  `ViewPermissionUsageActivity` alias — required by Health Connect's own
+  permission-rationale screen, not a normal launchable activity.
 
 **Configuration** mirrors the backend/frontend `.env` pattern:
 `android/local.properties` (gitignored) holds `GOOGLE_WEB_CLIENT_ID` (the same

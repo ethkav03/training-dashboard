@@ -11,12 +11,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.momentum.android.auth.AuthViewModel
+import com.momentum.android.healthconnect.HealthConnectViewModel
 import com.momentum.android.ui.LoginScreen
 import com.momentum.android.ui.SyncScreen
 import com.momentum.android.ui.theme.MomentumTheme
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels { AuthViewModel.Factory(applicationContext) }
+    private val healthConnectViewModel: HealthConnectViewModel by viewModels {
+        HealthConnectViewModel.Factory(applicationContext)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +31,7 @@ class MainActivity : ComponentActivity() {
                     if (authState.token == null) {
                         LoginScreen(viewModel = authViewModel)
                     } else {
-                        SyncScreen(viewModel = authViewModel)
+                        SyncScreen(authViewModel = authViewModel, healthConnectViewModel = healthConnectViewModel)
                     }
                 }
             }
