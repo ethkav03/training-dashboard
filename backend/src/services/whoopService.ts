@@ -1,10 +1,18 @@
-import type { WhoopSyncResultDto } from "@momentum/shared";
+import type { ActivityType, WhoopSyncResultDto } from "@momentum/shared";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { decrypt, encrypt } from "../lib/crypto.js";
+import { scoreToReadinessLevel } from "./recoveryService.js";
+import {
+  upsertExternalRecoveryRecord,
+  upsertExternalTrainingSession,
+  type ExternalSyncResult,
+} from "./externalSyncService.js";
+import { computeTrainingLoad } from "./trainingService.js";
 
 const AUTHORIZE_URL = "https://api.prod.whoop.com/oauth/oauth2/auth";
 const TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token";
+const API_BASE = "https://api.prod.whoop.com/developer";
 
 // Verified against developer.whoop.com/docs: "offline" is required to receive
 // a refresh_token at all; the rest are the data scopes we actually use.
@@ -170,12 +178,110 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
   return tokens.access_token;
 }
 
-/**
- * Real fetch + field mapping (recovery/sleep -> RecoveryRecord, workouts ->
- * TrainingSession) lands in the WHOOP data-sync sprint -- this proves the
- * connect -> sync -> disconnect round trip end to end, including token
- * refresh, before that mapping is built.
- */
+// ---- Data fetch + mapping (verified against developer.whoop.com/docs) ----
+
+interface WhoopRecovery {
+  cycle_id: number;
+  sleep_id: number;
+  created_at: string;
+  score_state: string;
+  score?: {
+    recovery_score: number;
+    resting_heart_rate: number;
+    hrv_rmssd_milli: number;
+  };
+}
+
+interface WhoopSleep {
+  id: number;
+  start: string;
+  end: string;
+  score_state: string;
+  score?: {
+    stage_summary: {
+      total_light_sleep_time_milli: number;
+      total_slow_wave_sleep_time_milli: number;
+      total_rem_sleep_time_milli: number;
+    };
+  };
+}
+
+interface WhoopWorkout {
+  id: number;
+  start: string;
+  end: string;
+  sport_name: string;
+  score_state: string;
+  score?: {
+    strain: number;
+    kilojoule: number;
+    average_heart_rate: number;
+  };
+}
+
+interface PaginatedResponse<T> {
+  records: T[];
+  next_token: string | null;
+}
+
+async function fetchAllPages<T>(path: string, accessToken: string, start: Date): Promise<T[]> {
+  const records: T[] = [];
+  let nextToken: string | null = null;
+  const MAX_PAGES = 20;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const params = new URLSearchParams({ start: start.toISOString(), limit: "25" });
+    if (nextToken) params.set("nextToken", nextToken);
+
+    const res = await fetch(`${API_BASE}${path}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`WHOOP request to ${path} failed (${res.status}): ${text}`);
+    }
+    const body = (await res.json()) as PaginatedResponse<T>;
+    records.push(...body.records);
+    nextToken = body.next_token;
+    if (!nextToken) break;
+  }
+
+  return records;
+}
+
+// Keyed by WHOOP's `sport_name` (lowercased) -- sport IDs aren't documented
+// with a stable public enum, so matching on the human-readable name is the
+// more robust option. Team sports never map to MATCH: WHOOP has no
+// opponent/result data, so MatchDetail couldn't be populated anyway.
+const SPORT_NAME_TO_ACTIVITY_TYPE: Record<string, ActivityType> = {
+  weightlifting: "GYM",
+  "functional fitness": "GYM",
+  powerlifting: "GYM",
+  running: "RUNNING",
+  cycling: "CYCLING",
+  walking: "WALKING",
+  hiking: "WALKING",
+  soccer: "TEAM_SPORT_TRAINING",
+  basketball: "TEAM_SPORT_TRAINING",
+  "american football": "TEAM_SPORT_TRAINING",
+  hockey: "TEAM_SPORT_TRAINING",
+  rugby: "TEAM_SPORT_TRAINING",
+  "australian football": "TEAM_SPORT_TRAINING",
+  baseball: "TEAM_SPORT_TRAINING",
+};
+
+function mapSportToActivityType(sportName: string): ActivityType {
+  return SPORT_NAME_TO_ACTIVITY_TYPE[sportName.trim().toLowerCase()] ?? "OTHER";
+}
+
+function dayStart(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+const KJ_TO_KCAL = 0.239006;
+
 export async function syncWhoopData(userId: string): Promise<WhoopSyncResultDto> {
   const connection = await prisma.integrationConnection.findUnique({
     where: { userId_provider: { userId, provider: "WHOOP" } },
@@ -197,12 +303,82 @@ export async function syncWhoopData(userId: string): Promise<WhoopSyncResultDto>
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) throw new Error("Could not obtain a valid WHOOP access token");
 
+    // First sync bounds lookback to 30 days; subsequent syncs pick up from
+    // the last successful sync. A recovery cycle only exists once the
+    // preceding night's sleep has closed, so a same-day "sync now" right
+    // after connecting will correctly show nothing for today yet.
+    const since = connection.lastSyncAt ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [recoveries, sleeps, workouts] = await Promise.all([
+      fetchAllPages<WhoopRecovery>("/v2/recovery", accessToken, since),
+      fetchAllPages<WhoopSleep>("/v2/activity/sleep", accessToken, since),
+      fetchAllPages<WhoopWorkout>("/v2/activity/workout", accessToken, since),
+    ]);
+
+    const sleepById = new Map(sleeps.map((s) => [s.id, s]));
+
+    let recoverySynced = 0;
+    let recoverySkipped = 0;
+    for (const recovery of recoveries) {
+      if (recovery.score_state !== "SCORED" || !recovery.score) continue;
+
+      const sleep = sleepById.get(recovery.sleep_id);
+      const sleepHours =
+        sleep?.score_state === "SCORED" && sleep.score
+          ? (sleep.score.stage_summary.total_light_sleep_time_milli +
+              sleep.score.stage_summary.total_slow_wave_sleep_time_milli +
+              sleep.score.stage_summary.total_rem_sleep_time_milli) /
+            3_600_000
+          : null;
+
+      const readinessScore = Math.round(recovery.score.recovery_score);
+      const result: ExternalSyncResult = await upsertExternalRecoveryRecord({
+        userId,
+        source: "WHOOP",
+        externalId: String(recovery.cycle_id),
+        // Recovery is generated once the preceding sleep closes, so its
+        // created_at reliably lands on the same calendar day as the sleep
+        // it's paired with -- using it as the shared bucket keeps both
+        // merged into one RecoveryRecord row instead of landing a day apart.
+        date: dayStart(new Date(recovery.created_at)),
+        sleepHours,
+        restingHr: Math.round(recovery.score.resting_heart_rate),
+        hrv: recovery.score.hrv_rmssd_milli,
+        readinessScore,
+        readinessLevel: scoreToReadinessLevel(readinessScore),
+      });
+      if (result === "skipped_manual_edit") recoverySkipped++;
+      else recoverySynced++;
+    }
+
+    let trainingSynced = 0;
+    for (const workout of workouts) {
+      if (workout.score_state !== "SCORED" || !workout.score) continue;
+
+      const durationMin = Math.round((new Date(workout.end).getTime() - new Date(workout.start).getTime()) / 60_000);
+      const intensity = Math.max(1, Math.min(10, Math.round((workout.score.strain / 21) * 10)));
+
+      await upsertExternalTrainingSession({
+        userId,
+        source: "WHOOP",
+        externalId: String(workout.id),
+        type: mapSportToActivityType(workout.sport_name),
+        date: new Date(workout.start),
+        durationMin,
+        intensity,
+        caloriesBurned: Math.round(workout.score.kilojoule * KJ_TO_KCAL),
+        avgHeartRate: Math.round(workout.score.average_heart_rate),
+        trainingLoad: computeTrainingLoad(durationMin, intensity),
+      });
+      trainingSynced++;
+    }
+
     const result: WhoopSyncResultDto = {
       status: "SUCCESS",
       syncedAt: new Date().toISOString(),
-      recoveryRecordsSynced: 0,
-      recoveryRecordsSkippedManualEdit: 0,
-      trainingSessionsSynced: 0,
+      recoveryRecordsSynced: recoverySynced,
+      recoveryRecordsSkippedManualEdit: recoverySkipped,
+      trainingSessionsSynced: trainingSynced,
     };
     await prisma.integrationConnection.update({
       where: { id: connection.id },

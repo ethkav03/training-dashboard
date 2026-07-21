@@ -232,6 +232,22 @@ export function SettingsPage() {
                 Last sync failed: {whoop.lastSyncError}
               </div>
             )}
+            {syncWhoopNow.data?.status === "SUCCESS" && (
+              <div className="mt-1.5 text-xs text-status-good">
+                Synced {syncWhoopNow.data.recoveryRecordsSynced} recovery day
+                {syncWhoopNow.data.recoveryRecordsSynced === 1 ? "" : "s"} and{" "}
+                {syncWhoopNow.data.trainingSessionsSynced} workout
+                {syncWhoopNow.data.trainingSessionsSynced === 1 ? "" : "s"}
+                {syncWhoopNow.data.recoveryRecordsSkippedManualEdit > 0 &&
+                  ` (${syncWhoopNow.data.recoveryRecordsSkippedManualEdit} day${syncWhoopNow.data.recoveryRecordsSkippedManualEdit === 1 ? "" : "s"} skipped — manually edited)`}
+                .
+              </div>
+            )}
+            {syncWhoopNow.data?.status === "ERROR" && (
+              <div className="mt-1.5 rounded-md border border-hairline bg-page px-3 py-2 text-xs text-status-critical">
+                Sync failed: {syncWhoopNow.data.errorMessage}
+              </div>
+            )}
             {!whoop?.configured && !whoop?.connected && (
               <p className="mt-1.5 text-xs text-ink-muted">
                 Not configured yet — set WHOOP_CLIENT_ID/SECRET in backend/.env.

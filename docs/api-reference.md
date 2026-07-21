@@ -106,3 +106,14 @@ router so Express doesn't try to match `gym` as a session ID.
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/dashboard/today` | Composition endpoint for the Today page — readiness, weight/nutrition/training summaries, today's timeline, active goals (top 4, excluding achieved/paused), streaks + recent achievements, top 3 insights. Calls the exact same service functions the granular endpoints use. |
+
+## Integrations — `integrations.routes.ts`, `whoop.routes.ts`, `healthConnect.routes.ts`
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/integrations` | Connection status for every known provider (WHOOP, Health Connect), even before any row exists for the user. |
+| GET | `/integrations/whoop/connect` | Behind `requireAuth` (called via axios, not a plain link — see [architecture.md](./architecture.md#integrations)). Returns `{ authorizeUrl }`. 503 if `WHOOP_CLIENT_ID/SECRET` aren't set. |
+| GET | `/integrations/whoop/callback` | Not behind `requireAuth` — WHOOP's redirect carries no Bearer header. Auth comes from verifying the signed `state` param. Redirects to `/settings?whoop=connected` or `?whoop=error&message=...`. |
+| POST | `/integrations/whoop/sync` | Fetches recovery/sleep/workout data since the last successful sync (or last 30 days on first sync) and upserts it — see [calculations.md](./calculations.md#whoop-workouts). Always returns 200 with a structured `WhoopSyncResultDto` (`status: "SUCCESS" \| "ERROR"`), even on failure, so the frontend can show a visible error state rather than a bare exception. |
+| DELETE | `/integrations/whoop` | Disconnect — nulls token columns, does **not** delete previously-synced data. |
+| POST | `/integrations/health-connect/sync` | Batch sync endpoint for the companion Android app (weight/exercise/sleep records) — lands in a later sprint alongside the app itself. |

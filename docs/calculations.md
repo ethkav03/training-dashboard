@@ -150,6 +150,63 @@ Each level maps to a fixed recommendation string (`recoveryService.ts`,
 `RECOMMENDATIONS`) — presented as decision support, explicitly not medical
 advice or a diagnosis, per the product spec.
 
+**This formula only runs for manually-logged and Health-Connect-sourced days.**
+WHOOP-sourced recovery rows instead trust WHOOP's own `recovery_score` (0–100)
+directly, mapped to HIGH/MODERATE/LOW via the same thresholds
+(`scoreToReadinessLevel()`, shared so both paths use identical cutoffs).
+Reasoning: WHOOP's score already blends HRV + resting HR + sleep quality
+against WHOOP's own sensor-calibrated baseline — re-running our simpler
+formula on top of a *subset* of that same signal (WHOOP gives us no
+soreness/energy at all) would produce a lower-confidence number dressed up as
+equivalent to a fully-manual entry, which is exactly the "false precision"
+this whole document argues against elsewhere. Health Connect, by contrast,
+ships no pre-computed score of its own — raw sensor data only — so our
+formula is the only thing that *can* produce one for it, and doing so scores
+those days on the same yardstick as manual entries.
+
+---
+
+## WHOOP workouts
+
+`backend/src/services/whoopService.ts`
+
+```
+durationMin    = (workout.end − workout.start) in minutes
+intensity      = clamp(round(workout.score.strain / 21 × 10), 1, 10)
+caloriesBurned = round(workout.score.kilojoule × 0.239006)     (kJ → kcal)
+avgHeartRate   = round(workout.score.average_heart_rate)        (display only)
+trainingLoad   = durationMin × intensity                        (same formula as manual sessions)
+```
+
+WHOOP's strain is its own 0–21 whole-day-relative exertion scale; normalizing
+it into our 1–10 intensity is a real unit conversion, not a guess.
+`avgHeartRate` is stored and shown as honest supplementary context but is
+**never** used to derive `intensity` — estimating perceived exertion from
+heart rate alone (e.g. against an age-estimated max HR) would be exactly the
+kind of invented-looking precision this document argues against; Health
+Connect-sourced sessions instead get a fixed placeholder `intensity = 5` with
+a UI prompt to correct it, for the same reason.
+
+Sport is matched by WHOOP's human-readable `sport_name` (lowercased) against a
+fixed lookup table (`SPORT_NAME_TO_ACTIVITY_TYPE`), not by WHOOP's numeric
+`sport_id` — WHOOP doesn't publish a stable public enum for the IDs, so
+matching on the documented, self-describing name is the more robust choice.
+Team sports (soccer, basketball, etc.) always map to `TEAM_SPORT_TRAINING`,
+never `MATCH` — WHOOP has no opponent/result data, so `MatchDetail` couldn't
+be populated anyway; the user can manually convert an important session
+afterward. Unmapped sports default to `OTHER`. Synced workouts never carry
+nested `Workout`/`WorkoutSet` rows (WHOOP has no per-set data), so **PR
+detection never fires for synced sessions** — only for manually-logged gym
+workouts with real set data.
+
+WHOOP's recovery and sleep records are merged into one `RecoveryRecord` row
+per day, keyed by the **recovery's** `created_at` (truncated to the day) —
+not the sleep's own start/end — because a recovery is only generated once its
+paired sleep closes, so `created_at` reliably lands on the same calendar day
+as that sleep, giving both records one consistent day bucket to merge into.
+Sleep hours are computed as light + slow-wave + REM sleep time (excluding
+awake time within the sleep window), not total time in bed.
+
 ---
 
 ## Goal progress & status

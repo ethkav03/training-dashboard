@@ -71,9 +71,11 @@ session — the backend issues its own JWT after a successful OAuth exchange.
    `GET /api/auth/google`.
 2. Express (via `passport-google-oauth20`) redirects to Google's consent screen.
 3. Google redirects back to `GET /api/auth/google/callback?code=...`.
-4. The Passport verify callback does `prisma.user.upsert({ where: { googleId } })`
+4. The Passport verify callback calls `userService.upsertUserFromGoogleIdentity()`
    — first login creates the user, subsequent logins just refresh
-   name/email/avatar.
+   name/email/avatar. This is factored out as a shared function (rather than
+   upserting inline in `passport.ts`) so a future mobile Google Sign-In flow
+   can reuse the exact same upsert instead of a second, slightly different one.
 5. The route handler signs a JWT (`{ sub: userId, email }`, `JWT_SECRET`,
    7-day expiry by default) and redirects to
    `${FRONTEND_URL}/auth/callback?token=...`.
@@ -120,6 +122,45 @@ Two non-obvious fixes baked into the setup:
 base — without it, Prisma's query engine can't detect the right libssl version
 on Alpine and every query fails at runtime with an opaque schema-engine error,
 even though `prisma generate` completes without complaint at build time.
+
+## Integrations
+
+Of the three integrations in the original product spec, only WHOOP is a real,
+buildable OAuth integration today — Google Fit's REST API has had developer
+sign-ups frozen since May 2024 and sunsets entirely at the end of 2026, and
+MyFitnessPal's API is closed to new developer applications. See
+[data-model.md](./data-model.md#integrationconnection) for the schema and
+[calculations.md](./calculations.md#whoop-workouts) for the data-mapping
+formulas; this section covers the integration architecture itself.
+
+**WHOOP OAuth diverges from the Google flow in one deliberate way.**
+`GET /api/auth/google` is a plain `<a href>` full-page navigation because it
+doesn't need to know who's asking. `GET /api/integrations/whoop/connect`
+*does* need to know the already-logged-in Momentum user — but a full-page
+browser navigation can't carry the `Authorization: Bearer` header the axios
+interceptor normally attaches. So the frontend calls `/connect` as a normal
+authenticated axios request first (returning `{ authorizeUrl }`), and only
+then does `window.location.href = authorizeUrl` for the actual WHOOP
+redirect.
+
+**The OAuth `state` parameter is a self-contained signed token
+(`signOAuthState`/`verifyOAuthState` in `backend/src/lib/jwt.ts`), not
+server-side session storage.** The backend's `nodemon` setup restarts on
+every source file save in dev (see Containerization above) — an in-memory
+`Map<state, userId>` would silently break any WHOOP consent flow left
+mid-transit while editing backend code. A signed, ~10-minute-expiry token
+needs no storage and survives restarts.
+
+**OAuth tokens are encrypted at rest** (`backend/src/lib/crypto.ts`,
+AES-256-GCM, `ENCRYPTION_KEY` env var) — see
+[data-model.md](./data-model.md#integrationconnection).
+
+**Sync is pull-based only — on-demand "Sync now" plus (for the future Android
+app) a periodic background poll — not webhooks.** WHOOP supports webhooks for
+real-time push, but this project has no publicly reachable URL from local
+Docker dev, so there's nowhere for WHOOP to push to. Flagged in
+[roadmap.md](./roadmap.md) as a future enhancement if this is ever deployed
+somewhere reachable.
 
 ## Design system / theming
 
