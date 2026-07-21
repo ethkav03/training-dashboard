@@ -3,6 +3,31 @@ import type { UserDto } from "@momentum/shared";
 import { GoalDirection, OnboardingStatus } from "@momentum/shared";
 import { prisma } from "../lib/prisma.js";
 
+interface GoogleIdentity {
+  googleId: string;
+  email: string;
+  name: string;
+  avatarUrl?: string | null;
+}
+
+/** Shared by both the web OAuth callback (Passport) and the mobile ID-token exchange. */
+export async function upsertUserFromGoogleIdentity(identity: GoogleIdentity): Promise<User> {
+  return prisma.user.upsert({
+    where: { googleId: identity.googleId },
+    update: {
+      email: identity.email,
+      name: identity.name,
+      avatarUrl: identity.avatarUrl,
+    },
+    create: {
+      googleId: identity.googleId,
+      email: identity.email,
+      name: identity.name,
+      avatarUrl: identity.avatarUrl,
+    },
+  });
+}
+
 export function toUserDto(user: User): UserDto {
   return {
     id: user.id,

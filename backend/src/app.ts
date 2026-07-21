@@ -15,6 +15,9 @@ import { insightsRouter } from "./routes/insights.routes.js";
 import { timelineRouter } from "./routes/timeline.routes.js";
 import { achievementRouter } from "./routes/achievement.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
+import { integrationsRouter } from "./routes/integrations.routes.js";
+import { whoopRouter } from "./routes/whoop.routes.js";
+import { healthConnectRouter } from "./routes/healthConnect.routes.js";
 
 export const app = express();
 
@@ -37,5 +40,8 @@ app.use("/api/insights", insightsRouter);
 app.use("/api/timeline", timelineRouter);
 app.use("/api/achievements", achievementRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/integrations", integrationsRouter);
+app.use("/api/integrations/whoop", whoopRouter);
+app.use("/api/integrations/health-connect", healthConnectRouter);
 
 app.use(errorHandler);

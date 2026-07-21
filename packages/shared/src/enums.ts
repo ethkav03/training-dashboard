@@ -3,8 +3,23 @@ export const DataSource = {
   GOOGLE_FIT: "GOOGLE_FIT",
   WHOOP: "WHOOP",
   MYFITNESSPAL: "MYFITNESSPAL",
+  HEALTH_CONNECT: "HEALTH_CONNECT",
 } as const;
 export type DataSource = (typeof DataSource)[keyof typeof DataSource];
+
+export const IntegrationProvider = {
+  WHOOP: "WHOOP",
+  HEALTH_CONNECT: "HEALTH_CONNECT",
+} as const;
+export type IntegrationProvider = (typeof IntegrationProvider)[keyof typeof IntegrationProvider];
+
+export const SyncStatus = {
+  IDLE: "IDLE",
+  SYNCING: "SYNCING",
+  SUCCESS: "SUCCESS",
+  ERROR: "ERROR",
+} as const;
+export type SyncStatus = (typeof SyncStatus)[keyof typeof SyncStatus];
 
 export const UnitSystem = {
   METRIC: "METRIC",

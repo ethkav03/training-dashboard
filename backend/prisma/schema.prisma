@@ -12,6 +12,19 @@ enum DataSource {
   GOOGLE_FIT
   WHOOP
   MYFITNESSPAL
+  HEALTH_CONNECT
+}
+
+enum IntegrationProvider {
+  WHOOP
+  HEALTH_CONNECT
+}
+
+enum SyncStatus {
+  IDLE
+  SYNCING
+  SUCCESS
+  ERROR
 }
 
 enum UnitSystem {
@@ -92,12 +105,13 @@ model User {
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
 
-  weightEntries    WeightEntry[]
-  nutritionEntries NutritionEntry[]
-  trainingSessions TrainingSession[]
-  recoveryRecords  RecoveryRecord[]
-  goals            Goal[]
-  achievements     Achievement[]
+  weightEntries         WeightEntry[]
+  nutritionEntries      NutritionEntry[]
+  trainingSessions      TrainingSession[]
+  recoveryRecords       RecoveryRecord[]
+  goals                 Goal[]
+  achievements          Achievement[]
+  integrationConnections IntegrationConnection[]
 }
 
 model WeightEntry {
@@ -109,10 +123,12 @@ model WeightEntry {
   note             String?
   source           DataSource @default(MANUAL)
   isManuallyEdited Boolean    @default(false)
+  externalId       String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
   @@index([userId, date])
+  @@unique([userId, source, externalId])
 }
 
 model NutritionEntry {
@@ -143,10 +159,12 @@ model TrainingSession {
   durationMin      Int
   intensity        Int
   caloriesBurned   Int?
+  avgHeartRate     Int?
   trainingLoad     Float
   notes            String?
   source           DataSource   @default(MANUAL)
   isManuallyEdited Boolean      @default(false)
+  externalId       String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -155,6 +173,7 @@ model TrainingSession {
 
   @@index([userId, date])
   @@index([userId, type])
+  @@unique([userId, source, externalId])
 }
 
 model Workout {
@@ -217,6 +236,7 @@ model RecoveryRecord {
   notes            String?
   source           DataSource     @default(MANUAL)
   isManuallyEdited Boolean        @default(false)
+  externalId       String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -259,4 +279,34 @@ model Achievement {
   createdAt   DateTime        @default(now())
 
   @@index([userId, type])
+}
+
+model IntegrationConnection {
+  id       String              @id @default(cuid())
+  userId   String
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider IntegrationProvider
+
+  // OAuth token material -- populated only for WHOOP. Health Connect has no
+  // server-side OAuth grant (its "connection" lives entirely as on-device
+  // permissions granted to the Android app), so these stay null for that row.
+  accessTokenCiphertext  String?
+  accessTokenIv          String?
+  accessTokenAuthTag     String?
+  refreshTokenCiphertext String?
+  refreshTokenIv         String?
+  refreshTokenAuthTag    String?
+  scope                  String?
+  tokenExpiresAt         DateTime?
+
+  connectedAt    DateTime?
+  disconnectedAt DateTime?
+  lastSyncAt     DateTime?
+  lastSyncStatus SyncStatus @default(IDLE)
+  lastSyncError  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, provider])
 }

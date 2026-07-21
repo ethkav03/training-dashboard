@@ -21,6 +21,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+export function scoreToReadinessLevel(score: number): ReadinessLevel {
+  return score >= 75 ? "HIGH" : score >= 50 ? "MODERATE" : "LOW";
+}
+
 /**
  * Weighted 0-100 readiness score from whichever components have data today,
  * renormalized over just those components so a missing metric (e.g. no HRV
@@ -59,7 +63,7 @@ export function computeReadiness(
       ? Math.round(components.reduce((sum, c) => sum + c.value * c.weight, 0) / totalWeight)
       : 50;
 
-  const level: ReadinessLevel = score >= 75 ? "HIGH" : score >= 50 ? "MODERATE" : "LOW";
+  const level = scoreToReadinessLevel(score);
 
   return { score, level, recommendation: RECOMMENDATIONS[level] };
 }
@@ -83,7 +87,7 @@ export function toRecoveryRecordDto(record: RecoveryRecord): RecoveryRecordDto {
   };
 }
 
-async function getBaseline(userId: string, excludeDate: Date) {
+export async function getBaseline(userId: string, excludeDate: Date) {
   const thirtyDaysAgo = new Date(excludeDate.getTime() - 30 * 24 * 60 * 60 * 1000);
   const records = await prisma.recoveryRecord.findMany({
     where: {

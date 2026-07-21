@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy, type Profile } from "passport-google-oauth20";
 import { env, isGoogleOAuthConfigured } from "./env.js";
-import { prisma } from "../lib/prisma.js";
+import { upsertUserFromGoogleIdentity } from "../services/userService.js";
 
 if (isGoogleOAuthConfigured) {
   passport.use(
@@ -17,19 +17,11 @@ if (isGoogleOAuthConfigured) {
           if (!email) {
             return done(new Error("Google account has no email"));
           }
-          const user = await prisma.user.upsert({
-            where: { googleId: profile.id },
-            update: {
-              email,
-              name: profile.displayName,
-              avatarUrl: profile.photos?.[0]?.value,
-            },
-            create: {
-              googleId: profile.id,
-              email,
-              name: profile.displayName,
-              avatarUrl: profile.photos?.[0]?.value,
-            },
+          const user = await upsertUserFromGoogleIdentity({
+            googleId: profile.id,
+            email,
+            name: profile.displayName,
+            avatarUrl: profile.photos?.[0]?.value,
           });
           return done(null, user);
         } catch (err) {

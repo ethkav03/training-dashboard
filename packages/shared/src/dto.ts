@@ -5,9 +5,11 @@ import type {
   GoalDirection,
   GoalStatus,
   GoalType,
+  IntegrationProvider,
   MatchResult,
   OnboardingStatus,
   ReadinessLevel,
+  SyncStatus,
   TimelineEntryKind,
   UnitSystem,
 } from "./enums.js";
@@ -244,4 +246,23 @@ export interface DashboardTodayDto {
     recentAchievements: AchievementDto[];
   };
   topInsights: InsightDto[];
+}
+
+export interface IntegrationConnectionDto {
+  provider: IntegrationProvider;
+  configured: boolean;
+  connected: boolean;
+  connectedAt: string | null;
+  lastSyncAt: string | null;
+  lastSyncStatus: SyncStatus;
+  lastSyncError: string | null;
+}
+
+export interface WhoopSyncResultDto {
+  status: "SUCCESS" | "ERROR";
+  syncedAt: string;
+  recoveryRecordsSynced: number;
+  recoveryRecordsSkippedManualEdit: number;
+  trainingSessionsSynced: number;
+  errorMessage?: string;
 }
