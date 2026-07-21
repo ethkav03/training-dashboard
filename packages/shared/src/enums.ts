@@ -94,6 +94,15 @@ export const AchievementType = {
 } as const;
 export type AchievementType = (typeof AchievementType)[keyof typeof AchievementType];
 
+export const EnergyBalanceGranularity = {
+  DAY: "day",
+  WEEK: "week",
+  MONTH: "month",
+  YEAR: "year",
+} as const;
+export type EnergyBalanceGranularity =
+  (typeof EnergyBalanceGranularity)[keyof typeof EnergyBalanceGranularity];
+
 export const TimelineEntryKind = {
   WEIGHT: "WEIGHT",
   MEAL: "MEAL",

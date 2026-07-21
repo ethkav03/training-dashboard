@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { EnergyBalanceGranularity } from "@momentum/shared";
 import {
   createNutritionEntry,
   deleteNutritionEntry,
+  getEnergyBalanceSeries,
   getNutritionEntries,
   getNutritionSummary,
   updateNutritionEntry,
@@ -11,6 +13,14 @@ export function useNutritionSummary(date?: string) {
   return useQuery({
     queryKey: ["nutrition", "summary", date ?? "today"],
     queryFn: () => getNutritionSummary(date),
+    refetchOnMount: "always",
+  });
+}
+
+export function useEnergyBalanceSeries(granularity: EnergyBalanceGranularity) {
+  return useQuery({
+    queryKey: ["nutrition", "energy-balance", granularity],
+    queryFn: () => getEnergyBalanceSeries(granularity),
     refetchOnMount: "always",
   });
 }

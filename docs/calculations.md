@@ -58,6 +58,36 @@ expenditure must never be presented with false precision, so this build asks
 the user for their own number rather than computing one that looks more
 authoritative than it is. The response always carries `isEstimate: true`.
 
+### Consumed-vs-burned series (day/week/month/year)
+
+`nutritionService.getEnergyBalanceSeries()`, backing the Fuel tab's trend
+graph and `GET /nutrition/energy-balance?granularity=`.
+
+Rather than looping the per-day summary function above over every day in the
+requested range (which would mean hundreds of queries for a multi-year "year"
+view), this walks two flat range queries (`NutritionEntry`, `TrainingSession`)
+once and buckets them in memory by the requested granularity:
+
+```
+bucketKey(date, "day")   = the date itself
+bucketKey(date, "week")  = that date's Monday (Monday-start weeks)
+bucketKey(date, "month") = "YYYY-MM"
+bucketKey(date, "year")  = "YYYY"
+```
+
+Default lookback per granularity: **day** → last 30 days, **week** → last 12
+weeks, **month** → last 12 months, **year** → last 5 years.
+
+Critically, the bucketing walks **every calendar day** in the lookback range
+(not just days with a logged entry) and adds the baseline burn for each one —
+otherwise a week or month's total burn would silently undercount by excluding
+days the user just didn't log a meal on. The current (most recent, still
+in-progress) bucket is therefore intentionally partial — e.g. a "this week"
+bucket on a Tuesday only accumulates baseline burn for Monday + Tuesday, not
+the full 7 days, since the rest of the week hasn't happened yet. This was
+verified arithmetically during manual testing (baseline × elapsed-days-so-far
+matched the API response exactly for week/month/year buckets), not assumed.
+
 ---
 
 ## Training load

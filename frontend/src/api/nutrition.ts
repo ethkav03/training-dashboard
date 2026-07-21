@@ -1,8 +1,13 @@
-import type { NutritionEntryDto, NutritionSummaryDto } from "@momentum/shared";
+import type { EnergyBalanceGranularity, EnergyBalancePointDto, NutritionEntryDto, NutritionSummaryDto } from "@momentum/shared";
 import { apiClient } from "./client.js";
 
 export async function getNutritionSummary(date?: string): Promise<NutritionSummaryDto> {
   const { data } = await apiClient.get("/nutrition/summary", { params: date ? { date } : undefined });
+  return data;
+}
+
+export async function getEnergyBalanceSeries(granularity: EnergyBalanceGranularity): Promise<EnergyBalancePointDto[]> {
+  const { data } = await apiClient.get("/nutrition/energy-balance", { params: { granularity } });
   return data;
 }
 

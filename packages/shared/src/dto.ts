@@ -258,6 +258,13 @@ export interface IntegrationConnectionDto {
   lastSyncError: string | null;
 }
 
+export interface EnergyBalancePointDto {
+  period: string;
+  totalCalories: number;
+  totalBurnKcal: number;
+  balanceKcal: number | null;
+}
+
 export interface WhoopSyncResultDto {
   status: "SUCCESS" | "ERROR";
   syncedAt: string;

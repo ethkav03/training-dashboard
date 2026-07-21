@@ -43,6 +43,7 @@ page lists routes and intent, not full field-level schemas.
 | GET | `/nutrition?from&to` | Raw meal entries. |
 | GET | `/nutrition/summary?date` | Daily totals + target comparison + estimated energy balance. |
 | GET | `/nutrition/summary/range?from&to` | Summary per day across a range (for weekly charts). |
+| GET | `/nutrition/energy-balance?granularity=day\|week\|month\|year` | Consumed-vs-burned series bucketed by the requested granularity (default `day`) — see [calculations.md](./calculations.md#consumed-vs-burned-series-dayweekmonthyear). Default lookback: 30 days / 12 weeks / 12 months / 5 years. |
 | POST | `/nutrition` | Create a meal entry. Triggers streak-milestone check. |
 | PATCH | `/nutrition/:id` | |
 | DELETE | `/nutrition/:id` | |

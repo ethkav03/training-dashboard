@@ -1,7 +1,16 @@
 import { useState } from "react";
 import type { NutritionEntryDto } from "@momentum/shared";
-import { useNutritionEntries, useDeleteNutritionEntry, useNutritionSummary } from "../../hooks/useNutrition.js";
+import { EnergyBalanceGranularity } from "@momentum/shared";
+import { clsx } from "clsx";
+import {
+  useEnergyBalanceSeries,
+  useNutritionEntries,
+  useDeleteNutritionEntry,
+  useNutritionSummary,
+} from "../../hooks/useNutrition.js";
 import { NutritionEntryForm } from "../../components/forms/NutritionEntryForm.js";
+import { ChartCard } from "../../components/charts/ChartCard.js";
+import { EnergyBalanceChart } from "../../components/charts/EnergyBalanceChart.js";
 import { Button } from "../../components/ui/Button.js";
 import { Card, CardTitle } from "../../components/ui/Card.js";
 
@@ -17,6 +26,13 @@ function endOfDayIso(): string {
   return d.toISOString();
 }
 
+const GRANULARITY_TABS: { value: EnergyBalanceGranularity; label: string }[] = [
+  { value: EnergyBalanceGranularity.DAY, label: "Day" },
+  { value: EnergyBalanceGranularity.WEEK, label: "Week" },
+  { value: EnergyBalanceGranularity.MONTH, label: "Month" },
+  { value: EnergyBalanceGranularity.YEAR, label: "Year" },
+];
+
 export function FuelTab() {
   const { data: summary, isLoading: summaryLoading } = useNutritionSummary();
   const { data: entries, isLoading: entriesLoading } = useNutritionEntries({
@@ -26,6 +42,11 @@ export function FuelTab() {
   const deleteMutation = useDeleteNutritionEntry();
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<NutritionEntryDto | null>(null);
+  const [granularity, setGranularity] = useState<EnergyBalanceGranularity>(EnergyBalanceGranularity.DAY);
+  const { data: series } = useEnergyBalanceSeries(granularity);
+
+  const latest = series?.at(-1);
+  const consumedVsBurnedMax = latest ? Math.max(latest.totalCalories, latest.totalBurnKcal, 1) : 1;
 
   return (
     <div className="flex flex-col gap-4">
@@ -69,6 +90,83 @@ export function FuelTab() {
           </Card>
         </div>
       )}
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-ink-secondary">Consumed vs. burned</h2>
+          <nav className="flex gap-1">
+            {GRANULARITY_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setGranularity(tab.value)}
+                className={clsx(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  granularity === tab.value
+                    ? "bg-surface text-ink-primary shadow-sm"
+                    : "text-ink-secondary hover:text-ink-primary"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {latest && (
+          <Card>
+            <CardTitle>Latest {granularity === "day" ? "day" : granularity}</CardTitle>
+            <div className="mt-2 flex flex-col gap-2">
+              <div>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-ink-secondary">Consumed</span>
+                  <span className="font-medium text-ink-primary">{latest.totalCalories} kcal</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-page">
+                  <div
+                    className="h-2 rounded-full bg-series-2"
+                    style={{ width: `${(latest.totalCalories / consumedVsBurnedMax) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-ink-secondary">Burned (estimate)</span>
+                  <span className="font-medium text-ink-primary">{latest.totalBurnKcal} kcal</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-page">
+                  <div
+                    className="h-2 rounded-full bg-series-1"
+                    style={{ width: `${(latest.totalBurnKcal / consumedVsBurnedMax) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {series && (
+          <ChartCard
+            title="Trend"
+            legend={[
+              { color: "var(--series-2)", label: "Consumed" },
+              { color: "var(--series-1)", label: "Burned (estimate)" },
+            ]}
+            chart={<EnergyBalanceChart points={series} granularity={granularity} />}
+            tableRows={series.map((p) => ({ ...p, id: p.period }))}
+            tableColumns={[
+              { key: "period", label: "Period", render: (r) => r.period },
+              { key: "totalCalories", label: "Consumed (kcal)", render: (r) => r.totalCalories },
+              { key: "totalBurnKcal", label: "Burned (kcal)", render: (r) => r.totalBurnKcal },
+              {
+                key: "balanceKcal",
+                label: "Balance (kcal)",
+                render: (r) => (r.balanceKcal != null ? `${r.balanceKcal > 0 ? "+" : ""}${r.balanceKcal}` : "—"),
+              },
+            ]}
+            emptyMessage="Not enough data yet for this view."
+          />
+        )}
+      </div>
 
       <Card>
         <CardTitle>Today's meals</CardTitle>

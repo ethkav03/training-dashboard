@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { z } from "zod";
+import { EnergyBalanceGranularity } from "@momentum/shared";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { validateBody, validateQuery } from "../middleware/validate.js";
 import {
@@ -9,7 +11,12 @@ import {
 } from "../validation/nutrition.validation.js";
 import { dateRangeQuerySchema } from "../validation/weight.validation.js";
 import { prisma } from "../lib/prisma.js";
-import { getNutritionSummaryForDate, getNutritionSummaryRange, toNutritionEntryDto } from "../services/nutritionService.js";
+import {
+  getEnergyBalanceSeries,
+  getNutritionSummaryForDate,
+  getNutritionSummaryRange,
+  toNutritionEntryDto,
+} from "../services/nutritionService.js";
 import { recordStreakMilestonesIfAny } from "../services/gamificationService.js";
 import { ApiError } from "../middleware/errorHandler.js";
 
@@ -48,6 +55,19 @@ nutritionRouter.get("/summary/range", validateQuery(summaryRangeQuerySchema), as
     const { from, to } = req.query as { from: string; to: string };
     const summaries = await getNutritionSummaryRange(req.userId!, new Date(from), new Date(to));
     res.json(summaries);
+  } catch (err) {
+    next(err);
+  }
+});
+
+const energyBalanceQuerySchema = z.object({
+  granularity: z.nativeEnum(EnergyBalanceGranularity).default(EnergyBalanceGranularity.DAY),
+});
+
+nutritionRouter.get("/energy-balance", validateQuery(energyBalanceQuerySchema), async (req, res, next) => {
+  try {
+    const { granularity } = req.query as unknown as { granularity: EnergyBalanceGranularity };
+    res.json(await getEnergyBalanceSeries(req.userId!, granularity));
   } catch (err) {
     next(err);
   }

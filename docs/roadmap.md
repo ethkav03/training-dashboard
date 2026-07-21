@@ -24,7 +24,7 @@ for the implementation detail behind each item.
 | 8 | Shared integration infrastructure: `IntegrationConnection` model (encrypted-at-rest OAuth tokens), `externalId` dedup + manual-edit precedence (`externalSyncService.ts`), `HEALTH_CONNECT` data source, `GET /api/integrations` | Done |
 | 9 | WHOOP OAuth connect/callback/disconnect (real endpoints, scopes verified against developer.whoop.com), signed-state CSRF protection, Settings UI (connect/sync-now/disconnect, visible error state) | Done |
 | 10 | WHOOP data sync: real recovery/sleep/workout fetch (paginated), field mapping (sport→ActivityType, strain→intensity, kJ→kcal), sync result summary in Settings | Done |
-| 10.5 | Fuel: calories-consumed-vs-burned indicator + day/week/month/year energy-balance graph | Planned |
+| 10.5 | Fuel: calories-consumed-vs-burned indicator + day/week/month/year energy-balance graph | Done |
 | 11 | Mobile auth (`POST /auth/google/mobile`, shared `upsertUserFromGoogleIdentity`) + native Android app scaffold (Kotlin, Google Sign-In only, no Health Connect yet) | Planned |
 | 12 | Health Connect read + manual sync from the Android app (bounded historical read, mapper, `POST /integrations/health-connect/sync`) | Planned |
 | 13 | Android `WorkManager` periodic incremental sync (changes-token handling), Health Connect row wired into web Settings, on-device steps display | Planned |
