@@ -133,18 +133,22 @@ android/
     │   └── MomentumApi.kt          # Retrofit interface + @Serializable request/response models
     ├── healthconnect/
     │   ├── HealthConnectManager.kt     # SDK availability check, fixed permission set, permission contract
-    │   ├── HealthConnectRepository.kt  # bounded reads (weight/exercise/sleep) + per-session aggregates
+    │   ├── HealthConnectRepository.kt  # bounded + changes-token reads (weight/exercise/sleep) + per-session aggregates
     │   ├── HealthConnectMapper.kt      # SDK records -> the exact JSON shape the sync endpoint expects
+    │   ├── HealthConnectSyncState.kt   # DataStore-persisted changes-token, on-device only
     │   └── HealthConnectViewModel.kt   # UI state, ViewModelProvider.Factory (constructs its own deps)
+    ├── sync/
+    │   ├── SyncWorker.kt               # CoroutineWorker: same read-map-post pipeline, changes-token driven
+    │   └── SyncScheduler.kt            # enqueues SyncWorker as ~6h unique periodic WorkManager work
     └── ui/                         # Compose + Material3: LoginScreen, SyncScreen, theme/
 ```
 
-Auth (prior sprint) stayed deliberately narrow: sign in, store the token,
-show the signed-in user's name via `GET /users/me`. This sprint adds Health
-Connect: permission request + a manual "Sync now" that reads a bounded
-history and posts it to `POST /integrations/health-connect/sync`. Background
-sync (`WorkManager`, incremental changes-tokens) is still the next sprint —
-today's version only ever syncs when the user taps the button.
+Auth (Sprint 11) stayed deliberately narrow: sign in, store the token, show
+the signed-in user's name via `GET /users/me`. Sprint 12 added Health Connect:
+permission request + a manual "Sync now" that reads a bounded history and
+posts it to `POST /integrations/health-connect/sync`. This sprint adds the
+background half — periodic `WorkManager` sync using Health Connect's
+changes-token so it isn't re-reading 30 days of history every ~6 hours.
 
 **Health Connect read path**, `healthconnect/`:
 
@@ -158,12 +162,12 @@ today's version only ever syncs when the user taps the button.
   read-only). Steps is requested — completing the permission flow the
   product spec describes — but isn't written anywhere; there's no column for
   it in the current schema, so it's a roadmap item, not a bug.
-- `HealthConnectRepository` reads a **fixed 30-day trailing window** every
-  sync, not an incremental changes-token — that refinement is Sprint 13's
-  job. Re-sending already-synced records is safe: the backend's
-  `externalId`-based dedup (see [data-model.md](./data-model.md)) makes it a
-  no-op, just not bandwidth-efficient for a background job, which is exactly
-  why this manual-only version doesn't try to be one.
+- The manual **"Sync now"** button always reads a **fixed 30-day trailing
+  window** — simple and always correct, since a user tapping a button once
+  in a while doesn't need incremental efficiency. The **background** job
+  (below) uses Health Connect's changes-token instead. Either way, re-sending
+  already-synced records is safe: the backend's `externalId`-based dedup (see
+  [data-model.md](./data-model.md)) makes it a no-op.
 - Exercise sessions carry no energy/heart-rate totals on the record itself —
   Health Connect stores those as separate time-series records — so each
   session gets its own `aggregate()` query scoped to that session's own
@@ -186,6 +190,50 @@ today's version only ever syncs when the user taps the button.
   `getSdkStatus()` can actually detect it pre-Android-14), and a
   `ViewPermissionUsageActivity` alias — required by Health Connect's own
   permission-rationale screen, not a normal launchable activity.
+
+**Background sync**, `sync/` + `healthconnect/HealthConnectSyncState.kt`:
+
+- `SyncScheduler.schedule()` enqueues `SyncWorker` as **unique periodic work**
+  (`ExistingPeriodicWorkPolicy.KEEP`, ~6h interval, network-required
+  constraint), called from `HealthConnectViewModel` every time it confirms
+  Health Connect permissions are actually granted — safe to call repeatedly
+  since `KEEP` means a second call never resets an already-scheduled job.
+- `SyncWorker` (`CoroutineWorker`) is built by WorkManager's default
+  reflective factory, not any custom DI — every dependency it needs
+  (`TokenStore`, `HealthConnectManager`, `HealthConnectRepository`, the
+  Retrofit `ApiClient`) is constructed by hand inside `doWork()`, the same
+  pattern every `ViewModel.Factory` in this app already uses. It exits
+  cleanly (`Result.success()`, not a failure) when there's no signed-in user,
+  Health Connect isn't available, or permissions aren't granted — none of
+  those are error conditions for a background job that may run long after
+  the user last opened the app.
+- **Changes-token, not a bounded re-read:** `HealthConnectSyncState`
+  persists Health Connect's own incremental changes-token via Jetpack
+  DataStore, scoped to exactly the three record types this app actually
+  syncs (weight, exercise, sleep — tracking heart rate or steps here would
+  just burn the token's change-log budget for data we only ever read as an
+  aggregate or don't sync at all). `HealthConnectRepository.readChanges()`
+  pages through `getChanges()` until `hasMore` is false, then returns the
+  accumulated upserts plus the token to persist for next time.
+- **Token expiry falls back to the same bounded 30-day read** "Sync now"
+  uses, immediately followed by minting and storing a brand-new token —
+  Health Connect only guarantees a changes-token stays valid for a limited
+  window, so a device that hasn't run its background sync in a while (long
+  idle period, app data cleared) needs a bounded do-over rather than a
+  permanent failure.
+- **Deletions aren't propagated.** `readChanges()` only acts on
+  `UpsertionChange` — an on-device delete doesn't retract an already-synced
+  Momentum row. This is the same accepted row-level coarseness already
+  documented for manual-edit precedence (see
+  [data-model.md](./data-model.md)), not an oversight.
+- **"Roughly" 6 hours, honestly.** WorkManager periodic work is subject to
+  Doze/App Standby — the OS can and will delay it well past the requested
+  interval if the device is idle or in a restricted standby bucket. This
+  build doesn't fight that with a foreground service, exact alarms, or a
+  battery-exemption prompt (see [roadmap.md](./roadmap.md)'s Android scope
+  cuts) — background sync is explicitly best-effort, with the manual "Sync
+  now" button as the reliable path whenever the user actually wants fresh
+  data immediately.
 
 **Configuration** mirrors the backend/frontend `.env` pattern:
 `android/local.properties` (gitignored) holds `GOOGLE_WEB_CLIENT_ID` (the same

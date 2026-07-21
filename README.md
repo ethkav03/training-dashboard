@@ -126,6 +126,10 @@ in Android Studio, not via this README's commands:
    now** to pull weight/workout/sleep data into Momentum. If Health Connect
    isn't installed (or needs updating) on the device/emulator, the app links
    straight to its Play Store listing instead of just failing silently.
+5. Granting that permission also schedules a background sync (`WorkManager`,
+   roughly every 6 hours, incremental via Health Connect's own changes-token)
+   — "roughly" because Doze/App Standby can delay it; **Sync now** stays the
+   reliable way to pull fresh data on demand.
 
 This part of the project has been written but not yet compiled/run in this
 environment (no Android SDK or emulator available where it was built) —

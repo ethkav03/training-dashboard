@@ -8,6 +8,7 @@ import com.momentum.android.auth.TokenStore
 import com.momentum.android.network.ApiClient
 import com.momentum.android.network.HealthConnectSyncResultDto
 import com.momentum.android.network.MomentumApi
+import com.momentum.android.sync.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,7 @@ data class HealthConnectUiState(
 )
 
 class HealthConnectViewModel(
+    private val appContext: Context,
     private val manager: HealthConnectManager,
     private val repository: HealthConnectRepository,
     private val api: MomentumApi,
@@ -42,26 +44,27 @@ class HealthConnectViewModel(
 
     fun refreshStatus() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(
-                availability = manager.availability,
-                permissionsGranted = runCatching { manager.hasAllPermissions() }.getOrDefault(false),
-            )
+            val granted = runCatching { manager.hasAllPermissions() }.getOrDefault(false)
+            _state.value = _state.value.copy(availability = manager.availability, permissionsGranted = granted)
+            // Idempotent (KEEP policy) -- safe to call every time this
+            // screen confirms permissions are still granted, e.g. on every
+            // app open, not just the first time they're granted.
+            if (granted) SyncScheduler.schedule(appContext)
         }
     }
 
     fun onPermissionsResult(granted: Set<String>) {
-        _state.value = _state.value.copy(permissionsGranted = granted.containsAll(permissions))
+        val allGranted = granted.containsAll(permissions)
+        _state.value = _state.value.copy(permissionsGranted = allGranted)
+        if (allGranted) SyncScheduler.schedule(appContext)
     }
 
     fun syncNow() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isSyncing = true, errorMessage = null)
             runCatching {
-                val since = HealthConnectRepository.defaultSince()
-                val weight = repository.readWeightRecords(since)
-                val exercise = repository.readExerciseSessions(since)
-                val sleep = repository.readSleepSessions(since)
-                api.syncHealthConnect(HealthConnectMapper.toSyncRequest(weight, exercise, sleep))
+                val bounded = repository.readBounded(HealthConnectRepository.defaultSince())
+                api.syncHealthConnect(HealthConnectMapper.toSyncRequest(bounded))
             }.onSuccess { result ->
                 _state.value = _state.value.copy(isSyncing = false, lastResult = result)
             }.onFailure { error ->
@@ -79,6 +82,7 @@ class HealthConnectViewModel(
             val tokenStore = TokenStore(context)
             @Suppress("UNCHECKED_CAST")
             return HealthConnectViewModel(
+                appContext = context.applicationContext,
                 manager = manager,
                 repository = HealthConnectRepository(manager),
                 api = ApiClient.create(tokenStore),

@@ -28,7 +28,7 @@ for the implementation detail behind each item.
 | 11 | Mobile auth (`POST /auth/google/mobile`, shared `upsertUserFromGoogleIdentity`) + native Android app scaffold (Kotlin, Google Sign-In only, no Health Connect yet) | Done (backend verified via curl; Android project written but not yet compiled/run -- no Android SDK/emulator in the build environment, see [architecture.md](./architecture.md#native-android-app)) |
 | 12 | Health Connect read + manual sync from the Android app (bounded historical read, mapper, `POST /integrations/health-connect/sync`) | Done (backend verified via curl; Android client written — `HealthConnectManager`/`Repository`/`Mapper`/`ViewModel`, `SyncScreen` wiring — but not yet compiled/run, same caveat as Sprint 11, see [architecture.md](./architecture.md#native-android-app)) |
 | — | **Interim feature additions** (mid-build, not their own sprint): meal-type categorization (`NutritionEntry.mealType`: Breakfast/Lunch/Dinner/Snacks, matching MyFitnessPal's diary layout, with time-of-day default); Recovery now logs `sleepScore` (0–100) and `strain` (0–21, 1 decimal) as pass-through headline metrics alongside the existing readiness score, with WHOOP sync computing "yesterday's strain" via previous-completed-cycle lookup | Done |
-| 13 | Android `WorkManager` periodic incremental sync (changes-token handling), Health Connect row wired into web Settings, on-device steps display | Planned |
+| 13 | Android `WorkManager` periodic incremental sync (Health Connect changes-token, token-expiry fallback) | Done (backend unaffected; Android client written — `SyncWorker`/`SyncScheduler`/`HealthConnectSyncState` — but not yet compiled/run, same caveat as Sprints 11–12, see [architecture.md](./architecture.md#native-android-app)). Web Settings' Health Connect row shipped earlier than planned, alongside Sprint 9's WHOOP row; on-device steps display deferred, see below. |
 | 14 | Docs pass across all five `/docs` files for Sprints 8–13 + `.env.example` updates + Settings polish | Planned |
 
 ## Explicitly out of scope for this build
@@ -80,3 +80,9 @@ Roughly in order of how directly they build on what exists:
    whole day's row from ever being re-synced.
 5. WHOOP webhook support + `WEEKLY_COMPLETION`, if this is ever deployed
    somewhere with a public URL.
+6. On-device steps display in the Android app. `StepsRecord` permission is
+   already requested (completes the Health Connect permission flow) and read
+   access is granted, but steps has no column anywhere in the current schema
+   — this would show a local, phone-only steps figure without syncing it
+   anywhere, or else needs a real schema decision (new table? folded into
+   `RecoveryRecord`?) first.

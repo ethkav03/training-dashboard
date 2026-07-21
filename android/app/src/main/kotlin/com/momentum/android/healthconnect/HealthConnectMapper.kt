@@ -37,6 +37,9 @@ private val NON_SLEEP_STAGE_TYPES = setOf(
 
 object HealthConnectMapper {
 
+    fun toSyncRequest(result: HealthConnectReadResult): HealthConnectSyncRequest =
+        toSyncRequest(result.weightRecords, result.exerciseSessions, result.sleepSessions)
+
     fun toSyncRequest(
         weightRecords: List<WeightRecord>,
         exerciseSessions: List<ExerciseSessionWithVitals>,
