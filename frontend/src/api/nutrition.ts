@@ -24,6 +24,22 @@ export async function createNutritionEntry(payload: {
   return data;
 }
 
+export async function updateNutritionEntry(
+  id: string,
+  payload: {
+    date?: string;
+    mealName?: string;
+    calories?: number;
+    proteinG?: number;
+    carbsG?: number;
+    fatG?: number;
+    notes?: string;
+  }
+): Promise<NutritionEntryDto> {
+  const { data } = await apiClient.patch(`/nutrition/${id}`, payload);
+  return data;
+}
+
 export async function deleteNutritionEntry(id: string): Promise<void> {
   await apiClient.delete(`/nutrition/${id}`);
 }

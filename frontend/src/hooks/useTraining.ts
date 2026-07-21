@@ -7,12 +7,15 @@ import {
   getLoadSummary,
   getTrainingSession,
   getTrainingSessions,
+  updateTrainingSession,
 } from "../api/training.js";
+import type { TrainingSessionWriteDto } from "@momentum/shared";
 
 export function useTrainingSessions(params?: { from?: string; to?: string; type?: string }) {
   return useQuery({
     queryKey: ["training", "list", params ?? {}],
     queryFn: () => getTrainingSessions(params),
+    refetchOnMount: "always",
   });
 }
 
@@ -25,7 +28,7 @@ export function useTrainingSession(id: string | undefined) {
 }
 
 export function useLoadSummary() {
-  return useQuery({ queryKey: ["training", "load-summary"], queryFn: getLoadSummary });
+  return useQuery({ queryKey: ["training", "load-summary"], queryFn: getLoadSummary, refetchOnMount: "always" });
 }
 
 export function useExerciseNames() {
@@ -50,6 +53,23 @@ export function useCreateTrainingSession() {
       queryClient.invalidateQueries({ queryKey: ["insights"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
       queryClient.invalidateQueries({ queryKey: ["nutrition"] });
+      queryClient.invalidateQueries({ queryKey: ["timeline"] });
+    },
+  });
+}
+
+export function useUpdateTrainingSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: TrainingSessionWriteDto }) =>
+      updateTrainingSession(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["training"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["insights"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition"] });
+      queryClient.invalidateQueries({ queryKey: ["timeline"] });
     },
   });
 }
@@ -61,6 +81,7 @@ export function useDeleteTrainingSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["training"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["timeline"] });
     },
   });
 }

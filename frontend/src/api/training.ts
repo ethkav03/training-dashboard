@@ -20,6 +20,11 @@ export async function createTrainingSession(payload: TrainingSessionWriteDto): P
   return data;
 }
 
+export async function updateTrainingSession(id: string, payload: TrainingSessionWriteDto): Promise<TrainingSessionDto> {
+  const { data } = await apiClient.put(`/training/${id}`, payload);
+  return data;
+}
+
 export async function deleteTrainingSession(id: string): Promise<void> {
   await apiClient.delete(`/training/${id}`);
 }

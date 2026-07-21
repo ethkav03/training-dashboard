@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useWeightTrend } from "../../hooks/useWeight.js";
+import type { WeightEntryDto } from "@momentum/shared";
+import { useDeleteWeightEntry, useWeightTrend } from "../../hooks/useWeight.js";
 import { ChartCard } from "../../components/charts/ChartCard.js";
 import { WeightTrendChart } from "../../components/charts/WeightTrendChart.js";
 import { WeightEntryForm } from "../../components/forms/WeightEntryForm.js";
@@ -8,7 +9,11 @@ import { Card, CardTitle } from "../../components/ui/Card.js";
 
 export function BodyTab() {
   const { data: trend, isLoading } = useWeightTrend();
+  const deleteMutation = useDeleteWeightEntry();
   const [showForm, setShowForm] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<WeightEntryDto | null>(null);
+
+  const recentEntries = [...(trend?.raw ?? [])].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,7 +71,38 @@ export function BodyTab() {
         />
       )}
 
+      <Card>
+        <CardTitle>Recent weigh-ins</CardTitle>
+        <div className="mt-2 flex flex-col divide-y divide-hairline">
+          {recentEntries.length === 0 && <p className="py-6 text-center text-sm text-ink-muted">No weigh-ins yet.</p>}
+          {recentEntries.map((entry) => (
+            <div key={entry.id} className="flex items-center justify-between py-2.5 text-sm">
+              <div>
+                <div className="font-medium text-ink-primary">{entry.weightKg} kg</div>
+                <div className="text-xs text-ink-secondary">
+                  {new Date(entry.date).toLocaleDateString()}
+                  {entry.note && ` · ${entry.note}`}
+                  {entry.source !== "MANUAL" && ` · ${entry.source}`}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <button className="text-ink-muted hover:text-ink-primary" onClick={() => setEditingEntry(entry)}>
+                  Edit
+                </button>
+                <button
+                  className="text-ink-muted hover:text-status-critical"
+                  onClick={() => deleteMutation.mutate(entry.id)}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       {showForm && <WeightEntryForm onClose={() => setShowForm(false)} />}
+      {editingEntry && <WeightEntryForm entry={editingEntry} onClose={() => setEditingEntry(null)} />}
     </div>
   );
 }

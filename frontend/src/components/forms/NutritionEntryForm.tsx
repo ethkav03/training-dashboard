@@ -1,34 +1,41 @@
 import { useState } from "react";
+import type { NutritionEntryDto } from "@momentum/shared";
 import { Modal } from "../ui/Modal.js";
 import { Button } from "../ui/Button.js";
-import { useCreateNutritionEntry } from "../../hooks/useNutrition.js";
+import { useCreateNutritionEntry, useUpdateNutritionEntry } from "../../hooks/useNutrition.js";
 
 const inputClass =
   "w-full rounded-lg border border-hairline bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-2";
 
-export function NutritionEntryForm({ onClose }: { onClose: () => void }) {
-  const [mealName, setMealName] = useState("");
-  const [calories, setCalories] = useState("");
-  const [proteinG, setProteinG] = useState("");
-  const [carbsG, setCarbsG] = useState("");
-  const [fatG, setFatG] = useState("");
-  const mutation = useCreateNutritionEntry();
+export function NutritionEntryForm({ onClose, entry }: { onClose: () => void; entry?: NutritionEntryDto }) {
+  const [mealName, setMealName] = useState(entry?.mealName ?? "");
+  const [calories, setCalories] = useState(entry ? String(entry.calories) : "");
+  const [proteinG, setProteinG] = useState(entry?.proteinG != null ? String(entry.proteinG) : "");
+  const [carbsG, setCarbsG] = useState(entry?.carbsG != null ? String(entry.carbsG) : "");
+  const [fatG, setFatG] = useState(entry?.fatG != null ? String(entry.fatG) : "");
+  const createMutation = useCreateNutritionEntry();
+  const updateMutation = useUpdateNutritionEntry();
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await mutation.mutateAsync({
-      date: new Date().toISOString(),
+    const payload = {
       mealName: mealName || undefined,
       calories: Number(calories),
       proteinG: proteinG ? Number(proteinG) : undefined,
       carbsG: carbsG ? Number(carbsG) : undefined,
       fatG: fatG ? Number(fatG) : undefined,
-    });
+    };
+    if (entry) {
+      await updateMutation.mutateAsync({ id: entry.id, patch: payload });
+    } else {
+      await createMutation.mutateAsync({ ...payload, date: new Date().toISOString() });
+    }
     onClose();
   }
 
   return (
-    <Modal title="Log meal" onClose={onClose}>
+    <Modal title={entry ? "Edit meal" : "Log meal"} onClose={onClose}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <label className="text-sm">
           <span className="mb-1 block text-ink-secondary">Meal name (optional)</span>
@@ -65,8 +72,8 @@ export function NutritionEntryForm({ onClose }: { onClose: () => void }) {
             <input className={inputClass} type="number" value={fatG} onChange={(e) => setFatG(e.target.value)} />
           </label>
         </div>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving..." : "Save"}
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving..." : entry ? "Save changes" : "Save"}
         </Button>
       </form>
     </Modal>

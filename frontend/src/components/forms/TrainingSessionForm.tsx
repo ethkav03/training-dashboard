@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { ActivityType, MatchResult } from "@momentum/shared";
+import { ActivityType, MatchResult, type TrainingSessionDto } from "@momentum/shared";
 import { Modal } from "../ui/Modal.js";
 import { Button } from "../ui/Button.js";
-import { useCreateTrainingSession } from "../../hooks/useTraining.js";
+import { useCreateTrainingSession, useUpdateTrainingSession } from "../../hooks/useTraining.js";
 
 const inputClass =
   "w-full rounded-lg border border-hairline bg-page px-2.5 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1";
@@ -113,18 +113,56 @@ function ExerciseEditor({ exIndex, control, register }: { exIndex: number; contr
   );
 }
 
-export function TrainingSessionForm({ onClose }: { onClose: () => void }) {
-  const mutation = useCreateTrainingSession();
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const { register, control, handleSubmit, watch } = useForm<FormValues>({
-    defaultValues: {
+function buildDefaultValues(session?: TrainingSessionDto): FormValues {
+  if (!session) {
+    return {
       type: ActivityType.GYM,
       date: new Date().toISOString().slice(0, 16),
       durationMin: 60,
       intensity: 6,
       exercises: [{ name: "", sets: [{ reps: 8, weightKg: 20, isWarmup: false }] }],
       keyStats: [],
-    },
+    };
+  }
+
+  const match = session.matchDetail;
+  return {
+    type: session.type,
+    date: session.date.slice(0, 16),
+    durationMin: session.durationMin,
+    intensity: session.intensity,
+    caloriesBurned: session.caloriesBurned ?? undefined,
+    notes: session.notes ?? undefined,
+    exercises: session.workout?.exercises.length
+      ? session.workout.exercises.map((ex) => ({
+          name: ex.name,
+          sets: ex.sets.map((s) => ({
+            reps: s.reps,
+            weightKg: s.weightKg,
+            rpe: s.rpe ?? undefined,
+            isWarmup: s.isWarmup,
+          })),
+        }))
+      : [{ name: "", sets: [{ reps: 8, weightKg: 20, isWarmup: false }] }],
+    opponent: match?.opponent ?? undefined,
+    competition: match?.competition ?? undefined,
+    position: match?.position ?? undefined,
+    minutesPlayed: match?.minutesPlayed ?? undefined,
+    result: match?.result ?? undefined,
+    performanceRating: match?.performanceRating ?? undefined,
+    injuryNotes: match?.injuryNotes ?? undefined,
+    reflection: match?.reflection ?? undefined,
+    keyStats: match?.keyStats ? Object.entries(match.keyStats).map(([key, value]) => ({ key, value })) : [],
+  };
+}
+
+export function TrainingSessionForm({ onClose, session }: { onClose: () => void; session?: TrainingSessionDto }) {
+  const createMutation = useCreateTrainingSession();
+  const updateMutation = useUpdateTrainingSession();
+  const isPending = createMutation.isPending || updateMutation.isPending;
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { register, control, handleSubmit, watch } = useForm<FormValues>({
+    defaultValues: buildDefaultValues(session),
   });
   const type = watch("type");
 
@@ -134,7 +172,7 @@ export function TrainingSessionForm({ onClose }: { onClose: () => void }) {
   async function onSubmit(values: FormValues) {
     setSubmitError(null);
     try {
-      await mutation.mutateAsync({
+      const payload = {
         type: values.type as never,
         date: new Date(values.date).toISOString(),
         durationMin: Number(values.durationMin),
@@ -175,7 +213,13 @@ export function TrainingSessionForm({ onClose }: { onClose: () => void }) {
                 reflection: values.reflection || null,
               }
             : undefined,
-      });
+      };
+
+      if (session) {
+        await updateMutation.mutateAsync({ id: session.id, payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
       onClose();
     } catch {
       setSubmitError("Couldn't save this session — check the fields and try again.");
@@ -183,7 +227,7 @@ export function TrainingSessionForm({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal title="Log training session" onClose={onClose}>
+    <Modal title={session ? "Edit training session" : "Log training session"} onClose={onClose}>
       <form className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1" onSubmit={handleSubmit(onSubmit)}>
         <label className="text-sm">
           <span className="mb-1 block text-ink-secondary">Activity type</span>
@@ -323,8 +367,8 @@ export function TrainingSessionForm({ onClose }: { onClose: () => void }) {
 
         {submitError && <p className="text-sm text-status-critical">{submitError}</p>}
 
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving..." : "Save session"}
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving..." : session ? "Save changes" : "Save session"}
         </Button>
       </form>
     </Modal>

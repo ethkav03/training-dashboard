@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createGoal, deleteGoal, getGoals, updateGoal } from "../api/goals.js";
 
 export function useGoals(params?: { status?: string; type?: string }) {
-  return useQuery({ queryKey: ["goals", params ?? {}], queryFn: () => getGoals(params) });
+  return useQuery({ queryKey: ["goals", params ?? {}], queryFn: () => getGoals(params), refetchOnMount: "always" });
 }
 
 export function useCreateGoal() {

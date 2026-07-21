@@ -15,6 +15,14 @@ export async function createWeightEntry(payload: {
   return data;
 }
 
+export async function updateWeightEntry(
+  id: string,
+  payload: { date?: string; weightKg?: number; note?: string }
+): Promise<WeightEntryDto> {
+  const { data } = await apiClient.patch(`/weight/${id}`, payload);
+  return data;
+}
+
 export async function deleteWeightEntry(id: string): Promise<void> {
   await apiClient.delete(`/weight/${id}`);
 }

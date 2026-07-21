@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRecoveryHistory, getRecoveryToday, logRecovery } from "../api/recovery.js";
 
 export function useRecoveryToday() {
-  return useQuery({ queryKey: ["recovery", "today"], queryFn: getRecoveryToday });
+  return useQuery({ queryKey: ["recovery", "today"], queryFn: getRecoveryToday, refetchOnMount: "always" });
 }
 
 export function useRecoveryHistory(params?: { from?: string; to?: string }) {

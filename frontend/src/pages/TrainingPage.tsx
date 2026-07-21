@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import type { TrainingSessionDto } from "@momentum/shared";
 import {
   useDeleteTrainingSession,
   useExerciseNames,
@@ -27,6 +28,7 @@ export function TrainingPage() {
   const { data: exerciseNames } = useExerciseNames();
   const deleteMutation = useDeleteTrainingSession();
   const [showForm, setShowForm] = useState(false);
+  const [editingSession, setEditingSession] = useState<TrainingSessionDto | null>(null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,12 +92,17 @@ export function TrainingPage() {
                     {session.intensity}/10 · load {session.trainingLoad}
                   </span>
                 </div>
-                <button
-                  className="text-xs text-ink-muted hover:text-status-critical"
-                  onClick={() => deleteMutation.mutate(session.id)}
-                >
-                  Remove
-                </button>
+                <div className="flex items-center gap-3">
+                  <button className="text-xs text-ink-muted hover:text-ink-primary" onClick={() => setEditingSession(session)}>
+                    Edit
+                  </button>
+                  <button
+                    className="text-xs text-ink-muted hover:text-status-critical"
+                    onClick={() => deleteMutation.mutate(session.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
               {session.workout && (
                 <ul className="mt-1.5 text-xs text-ink-secondary">
@@ -121,6 +128,7 @@ export function TrainingPage() {
       </Card>
 
       {showForm && <TrainingSessionForm onClose={() => setShowForm(false)} />}
+      {editingSession && <TrainingSessionForm session={editingSession} onClose={() => setEditingSession(null)} />}
     </div>
   );
 }

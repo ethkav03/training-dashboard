@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { NutritionEntryDto } from "@momentum/shared";
 import { useNutritionEntries, useDeleteNutritionEntry, useNutritionSummary } from "../../hooks/useNutrition.js";
 import { NutritionEntryForm } from "../../components/forms/NutritionEntryForm.js";
 import { Button } from "../../components/ui/Button.js";
@@ -24,6 +25,7 @@ export function FuelTab() {
   });
   const deleteMutation = useDeleteNutritionEntry();
   const [showForm, setShowForm] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<NutritionEntryDto | null>(null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,18 +87,24 @@ export function FuelTab() {
                   {entry.fatG != null && ` · ${entry.fatG}g fat`}
                 </div>
               </div>
-              <button
-                className="text-xs text-ink-muted hover:text-status-critical"
-                onClick={() => deleteMutation.mutate(entry.id)}
-              >
-                Remove
-              </button>
+              <div className="flex items-center gap-3 text-xs">
+                <button className="text-ink-muted hover:text-ink-primary" onClick={() => setEditingEntry(entry)}>
+                  Edit
+                </button>
+                <button
+                  className="text-ink-muted hover:text-status-critical"
+                  onClick={() => deleteMutation.mutate(entry.id)}
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </Card>
 
       {showForm && <NutritionEntryForm onClose={() => setShowForm(false)} />}
+      {editingEntry && <NutritionEntryForm entry={editingEntry} onClose={() => setEditingEntry(null)} />}
     </div>
   );
 }
