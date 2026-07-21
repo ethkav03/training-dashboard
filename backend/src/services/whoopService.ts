@@ -45,13 +45,17 @@ interface WhoopTokenResponse {
   scope: string;
 }
 
-// WHOOP's token endpoint takes a JSON body, not the more typical
-// x-www-form-urlencoded most OAuth2 servers use -- verified against docs.
+// WHOOP's OAuth2 server is Ory Hydra (same host/path pattern:
+// /oauth/oauth2/auth, /oauth/oauth2/token) -- its token endpoint follows
+// standard OAuth2 (RFC 6749 4.1.3): application/x-www-form-urlencoded, not
+// JSON. A prior pass here sent a JSON body instead; Hydra's form parser
+// found zero fields in it and rejected every real request with "The POST
+// body can not be empty," confirmed against a live WHOOP account.
 async function requestToken(body: Record<string, string>): Promise<WhoopTokenResponse> {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(body).toString(),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
