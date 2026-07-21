@@ -10,6 +10,7 @@ import {
 import { dateRangeQuerySchema } from "../validation/weight.validation.js";
 import { prisma } from "../lib/prisma.js";
 import { getNutritionSummaryForDate, getNutritionSummaryRange, toNutritionEntryDto } from "../services/nutritionService.js";
+import { recordStreakMilestonesIfAny } from "../services/gamificationService.js";
 import { ApiError } from "../middleware/errorHandler.js";
 
 export const nutritionRouter = Router();
@@ -57,6 +58,7 @@ nutritionRouter.post("/", validateBody(createNutritionEntrySchema), async (req, 
     const entry = await prisma.nutritionEntry.create({
       data: { ...req.body, userId: req.userId!, date: new Date(req.body.date), source: "MANUAL" },
     });
+    await recordStreakMilestonesIfAny(req.userId!);
     res.status(201).json(toNutritionEntryDto(entry));
   } catch (err) {
     next(err);

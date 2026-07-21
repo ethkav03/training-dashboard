@@ -14,6 +14,7 @@ import {
   replaceTrainingSession,
   toTrainingSessionDto,
 } from "../services/trainingService.js";
+import { recordStreakMilestonesIfAny } from "../services/gamificationService.js";
 import { prisma } from "../lib/prisma.js";
 
 export const trainingRouter = Router();
@@ -84,6 +85,7 @@ trainingRouter.get("/:id", async (req, res, next) => {
 trainingRouter.post("/", validateBody(createTrainingSessionSchema), async (req, res, next) => {
   try {
     const session = await createTrainingSession(req.userId!, req.body);
+    await recordStreakMilestonesIfAny(req.userId!);
     res.status(201).json(toTrainingSessionDto(session));
   } catch (err) {
     next(err);

@@ -1,0 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import { getInsights } from "../api/insights.js";
+
+export function useInsights() {
+  return useQuery({ queryKey: ["insights"], queryFn: getInsights });
+}

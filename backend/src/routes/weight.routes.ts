@@ -4,6 +4,7 @@ import { validateBody, validateQuery } from "../middleware/validate.js";
 import { createWeightEntrySchema, dateRangeQuerySchema, updateWeightEntrySchema } from "../validation/weight.validation.js";
 import { prisma } from "../lib/prisma.js";
 import { getWeightTrend, toWeightEntryDto } from "../services/weightService.js";
+import { recordStreakMilestonesIfAny } from "../services/gamificationService.js";
 import { ApiError } from "../middleware/errorHandler.js";
 
 export const weightRouter = Router();
@@ -47,6 +48,7 @@ weightRouter.post("/", validateBody(createWeightEntrySchema), async (req, res, n
         source: "MANUAL",
       },
     });
+    await recordStreakMilestonesIfAny(req.userId!);
     res.status(201).json(toWeightEntryDto(entry));
   } catch (err) {
     next(err);

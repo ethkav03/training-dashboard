@@ -4,6 +4,7 @@ import { validateBody, validateQuery } from "../middleware/validate.js";
 import { upsertRecoveryRecordSchema } from "../validation/recovery.validation.js";
 import { dateRangeQuerySchema } from "../validation/weight.validation.js";
 import { getRecoveryToday, listRecoveryRecords, toRecoveryRecordDto, upsertRecoveryRecord } from "../services/recoveryService.js";
+import { recordStreakMilestonesIfAny } from "../services/gamificationService.js";
 import { prisma } from "../lib/prisma.js";
 import { ApiError } from "../middleware/errorHandler.js";
 
@@ -33,6 +34,7 @@ recoveryRouter.get("/", validateQuery(dateRangeQuerySchema), async (req, res, ne
 recoveryRouter.post("/", validateBody(upsertRecoveryRecordSchema), async (req, res, next) => {
   try {
     const record = await upsertRecoveryRecord(req.userId!, req.body.date ? new Date(req.body.date) : new Date(), req.body);
+    await recordStreakMilestonesIfAny(req.userId!);
     res.status(201).json(toRecoveryRecordDto(record));
   } catch (err) {
     next(err);

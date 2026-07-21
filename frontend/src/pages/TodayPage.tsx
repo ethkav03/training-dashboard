@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.js";
 import { useDashboardToday } from "../hooks/useDashboard.js";
 import { ReadinessBadge } from "../components/cards/ReadinessBadge.js";
 import { GoalCard } from "../components/cards/GoalCard.js";
+import { InsightCard } from "../components/cards/InsightCard.js";
 import { TimelineEntryItem } from "../components/timeline/TimelineEntryItem.js";
 import { Card, CardTitle } from "../components/ui/Card.js";
 import { Button } from "../components/ui/Button.js";
@@ -98,6 +99,39 @@ export function TodayPage() {
                 ))}
               </div>
             </div>
+          )}
+
+          {data.topInsights.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-sm font-medium text-ink-secondary">Insights</h2>
+                <Link to="/insights" className="text-xs text-ink-muted hover:text-ink-primary">
+                  View all
+                </Link>
+              </div>
+              <div className="flex flex-col gap-3">
+                {data.topInsights.map((insight) => (
+                  <InsightCard key={insight.id} insight={insight} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.gamification.recentAchievements.length > 0 && (
+            <Card>
+              <CardTitle>Recent achievements</CardTitle>
+              <div className="mt-2 flex flex-col divide-y divide-hairline">
+                {data.gamification.recentAchievements.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between py-2 text-sm">
+                    <div>
+                      <div className="font-medium text-ink-primary">{a.title}</div>
+                      {a.description && <div className="text-xs text-ink-secondary">{a.description}</div>}
+                    </div>
+                    <span className="text-xs text-ink-muted">{new Date(a.achievedAt).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
           )}
 
           <Card>

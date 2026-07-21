@@ -115,6 +115,40 @@ export async function createTrainingSession(userId: string, input: TrainingSessi
             },
           },
         });
+
+        const workingSets = exercise.sets.filter((s) => !s.isWarmup);
+        if (workingSets.length === 0) continue;
+        const newBest1RM = Math.max(...workingSets.map((s) => estimateOneRepMax(s.weightKg, s.reps)));
+
+        // Historical best excludes the session just created above (its sets
+        // aren't attached to this exercise name query since they belong to a
+        // different WorkoutExercise row than any prior session's).
+        const priorSets = await tx.workoutSet.findMany({
+          where: {
+            isWarmup: false,
+            workoutExercise: {
+              name: exercise.name,
+              workout: { trainingSessionId: { not: session.id }, trainingSession: { userId } },
+            },
+          },
+        });
+        const priorBest1RM = priorSets.length
+          ? Math.max(...priorSets.map((s) => estimateOneRepMax(s.weightKg, s.reps)))
+          : 0;
+
+        if (newBest1RM > priorBest1RM) {
+          await tx.achievement.create({
+            data: {
+              userId,
+              type: "PERSONAL_RECORD",
+              title: `New PR: ${exercise.name}`,
+              description: `Estimated 1RM of ${newBest1RM} kg`,
+              value: newBest1RM,
+              metadata: { exerciseName: exercise.name, trainingSessionId: session.id },
+              achievedAt: session.date,
+            },
+          });
+        }
       }
     }
 

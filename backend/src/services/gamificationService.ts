@@ -66,3 +66,54 @@ export async function getRecentAchievements(userId: string, limit = 5) {
     take: limit,
   });
 }
+
+const STREAK_MILESTONES = [7, 30, 100];
+
+/**
+ * Fires a one-time STREAK achievement the day a streak first reaches 7/30/100
+ * days, for both the general logging streak and the training-specific one.
+ * Dedup is by (userId, type, title) so re-crossing the same milestone later
+ * (after a broken streak) creates a fresh achievement rather than none.
+ */
+export async function recordStreakMilestonesIfAny(userId: string): Promise<void> {
+  const [loggingStreak, trainingStreak] = await Promise.all([
+    computeLoggingStreak(userId),
+    computeTrainingStreak(userId),
+  ]);
+
+  const candidates: { title: string; description: string; value: number }[] = [];
+  for (const milestone of STREAK_MILESTONES) {
+    if (loggingStreak === milestone) {
+      candidates.push({
+        title: `${milestone}-day logging streak`,
+        description: `Logged something every day for ${milestone} days in a row.`,
+        value: milestone,
+      });
+    }
+    if (trainingStreak === milestone) {
+      candidates.push({
+        title: `${milestone}-day training streak`,
+        description: `Trained every day for ${milestone} days in a row.`,
+        value: milestone,
+      });
+    }
+  }
+
+  for (const candidate of candidates) {
+    const existing = await prisma.achievement.findFirst({
+      where: { userId, type: "STREAK", title: candidate.title },
+    });
+    if (!existing) {
+      await prisma.achievement.create({
+        data: {
+          userId,
+          type: "STREAK",
+          title: candidate.title,
+          description: candidate.description,
+          value: candidate.value,
+          achievedAt: new Date(),
+        },
+      });
+    }
+  }
+}
