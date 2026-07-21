@@ -7,6 +7,7 @@ import { OnboardingPage } from "./pages/OnboardingPage.js";
 import { TodayPage } from "./pages/TodayPage.js";
 import { ProgressPage } from "./pages/ProgressPage.js";
 import { TrainingPage } from "./pages/TrainingPage.js";
+import { ExerciseProgressionPage } from "./pages/training/ExerciseProgressionPage.js";
 import { GoalsPage } from "./pages/GoalsPage.js";
 import { InsightsPage } from "./pages/InsightsPage.js";
 import { TimelinePage } from "./pages/TimelinePage.js";
@@ -28,6 +29,7 @@ export function App() {
                 <Route path="today" element={<TodayPage />} />
                 <Route path="progress/*" element={<ProgressPage />} />
                 <Route path="training" element={<TrainingPage />} />
+                <Route path="training/exercises/:name" element={<ExerciseProgressionPage />} />
                 <Route path="goals" element={<GoalsPage />} />
                 <Route path="insights" element={<InsightsPage />} />
                 <Route path="timeline" element={<TimelinePage />} />
