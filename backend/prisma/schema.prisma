@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DataSource {
+  MANUAL
+  GOOGLE_FIT
+  WHOOP
+  MYFITNESSPAL
+}
+
+enum UnitSystem {
+  METRIC
+  IMPERIAL
+}
+
+enum OnboardingStatus {
+  PENDING
+  SKIPPED
+  COMPLETED
+}
+
+enum ActivityType {
+  GYM
+  RUNNING
+  TEAM_SPORT_TRAINING
+  MATCH
+  CYCLING
+  WALKING
+  RECOVERY_SESSION
+  OTHER
+}
+
+enum MatchResult {
+  WIN
+  LOSS
+  DRAW
+}
+
+enum GoalType {
+  BODY_WEIGHT
+  CALORIE_INTAKE
+  PROTEIN_INTAKE
+  TRAINING_FREQUENCY
+  EXERCISE_PERFORMANCE
+  SPORT_PERFORMANCE
+  SLEEP_RECOVERY
+  CUSTOM
+}
+
+enum GoalDirection {
+  INCREASE
+  DECREASE
+}
+
+enum GoalStatus {
+  ON_TRACK
+  AT_RISK
+  ACHIEVED
+  PAUSED
+}
+
+enum ReadinessLevel {
+  HIGH
+  MODERATE
+  LOW
+}
+
+enum AchievementType {
+  STREAK
+  PERSONAL_RECORD
+  MILESTONE
+  WEEKLY_COMPLETION
+}
+
+model User {
+  id                     String           @id @default(cuid())
+  googleId               String           @unique
+  email                  String           @unique
+  name                   String
+  avatarUrl              String?
+  unitSystem             UnitSystem       @default(METRIC)
+  dateOfBirth            DateTime?
+  heightCm               Float?
+  estimatedDailyBurnKcal Int?
+  onboardingStatus       OnboardingStatus @default(PENDING)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  weightEntries    WeightEntry[]
+  nutritionEntries NutritionEntry[]
+  trainingSessions TrainingSession[]
+  recoveryRecords  RecoveryRecord[]
+  goals            Goal[]
+  achievements     Achievement[]
+}
+
+model WeightEntry {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime
+  weightKg         Float
+  note             String?
+  source           DataSource @default(MANUAL)
+  isManuallyEdited Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId, date])
+}
+
+model NutritionEntry {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime
+  mealName         String?
+  calories         Int
+  proteinG         Float?
+  carbsG           Float?
+  fatG             Float?
+  notes            String?
+  source           DataSource @default(MANUAL)
+  isManuallyEdited Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId, date])
+}
+
+model TrainingSession {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type             ActivityType
+  date             DateTime
+  durationMin      Int
+  intensity        Int
+  caloriesBurned   Int?
+  trainingLoad     Float
+  notes            String?
+  source           DataSource   @default(MANUAL)
+  isManuallyEdited Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  workout     Workout?
+  matchDetail MatchDetail?
+
+  @@index([userId, date])
+  @@index([userId, type])
+}
+
+model Workout {
+  id                String            @id @default(cuid())
+  trainingSessionId String            @unique
+  trainingSession   TrainingSession   @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
+  exercises         WorkoutExercise[]
+}
+
+model WorkoutExercise {
+  id         String       @id @default(cuid())
+  workoutId  String
+  workout    Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  name       String
+  orderIndex Int
+  sets       WorkoutSet[]
+
+  @@index([name])
+}
+
+model WorkoutSet {
+  id                String          @id @default(cuid())
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  setNumber         Int
+  reps              Int
+  weightKg          Float
+  rpe               Float?
+  isWarmup          Boolean         @default(false)
+}
+
+model MatchDetail {
+  id                String          @id @default(cuid())
+  trainingSessionId String          @unique
+  trainingSession   TrainingSession @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
+  opponent          String?
+  competition       String?
+  position          String?
+  minutesPlayed     Int?
+  result            MatchResult?
+  performanceRating Int?
+  keyStats          Json?
+  injuryNotes       String?
+  reflection        String?
+}
+
+model RecoveryRecord {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime
+  sleepHours       Float?
+  sleepQuality     Int?
+  restingHr        Int?
+  hrv              Float?
+  soreness         Int?
+  energy           Int?
+  readinessScore   Int
+  readinessLevel   ReadinessLevel
+  notes            String?
+  source           DataSource     @default(MANUAL)
+  isManuallyEdited Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([userId, date])
+}
+
+model Goal {
+  id                  String        @id @default(cuid())
+  userId              String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                GoalType
+  title               String
+  targetValue         Float?
+  targetUnit          String?
+  direction           GoalDirection
+  startValue          Float?
+  startDate           DateTime
+  targetDate          DateTime?
+  status              GoalStatus    @default(ON_TRACK)
+  relatedExerciseName String?
+  notes               String?
+  pausedAt            DateTime?
+  achievedAt          DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([userId, status])
+}
+
+model Achievement {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        AchievementType
+  title       String
+  description String?
+  value       Float?
+  metadata    Json?
+  achievedAt  DateTime
+  createdAt   DateTime        @default(now())
+
+  @@index([userId, type])
+}
