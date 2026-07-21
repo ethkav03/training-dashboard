@@ -1,20 +1,48 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { UnitSystem } from "@momentum/shared";
 import { useAuth } from "../context/AuthContext.js";
 import { deleteMe, exportDataUrl, updateMe } from "../api/users.js";
 import { Card, CardTitle } from "../components/ui/Card.js";
 import { Button } from "../components/ui/Button.js";
 import { applyThemePreference, getStoredThemePreference, type ThemePreference } from "../lib/theme.js";
+import { useConnectWhoop, useDisconnectWhoop, useIntegrations, useSyncWhoopNow } from "../hooks/useIntegrations.js";
 
 export function SettingsPage() {
   const { user, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [savingUnits, setSavingUnits] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingWhoopDisconnect, setConfirmingWhoopDisconnect] = useState(false);
   const [burnBaseline, setBurnBaseline] = useState(user?.estimatedDailyBurnKcal?.toString() ?? "");
   const [savingBurn, setSavingBurn] = useState(false);
   const [theme, setTheme] = useState<ThemePreference>(getStoredThemePreference());
+  const [whoopCallbackNotice, setWhoopCallbackNotice] = useState<{ kind: "connected" | "error"; message?: string } | null>(
+    null
+  );
+
+  const { data: integrations, refetch: refetchIntegrations } = useIntegrations();
+  const connectWhoop = useConnectWhoop();
+  const syncWhoopNow = useSyncWhoopNow();
+  const disconnectWhoop = useDisconnectWhoop();
+  const whoop = integrations?.find((i) => i.provider === "WHOOP");
+  const healthConnect = integrations?.find((i) => i.provider === "HEALTH_CONNECT");
+
+  useEffect(() => {
+    const whoopParam = searchParams.get("whoop");
+    if (!whoopParam) return;
+    setWhoopCallbackNotice({
+      kind: whoopParam === "connected" ? "connected" : "error",
+      message: searchParams.get("message") ?? undefined,
+    });
+    setSearchParams((params) => {
+      params.delete("whoop");
+      params.delete("message");
+      return params;
+    }, { replace: true });
+    refetchIntegrations();
+  }, []);
 
   function handleThemeChange(preference: ThemePreference) {
     setTheme(preference);
@@ -131,11 +159,101 @@ export function SettingsPage() {
 
       <Card>
         <CardTitle>Integrations</CardTitle>
-        <p className="mt-2 text-sm text-ink-secondary">
-          Google Fit, WHOOP and MyFitnessPal sync aren't connected yet in this build — the data model
-          already tracks each record's source so these can be wired in later without a migration. For now,
-          log everything manually via Progress and Training.
-        </p>
+
+        {whoopCallbackNotice?.kind === "connected" && (
+          <div className="mt-2 rounded-md border border-hairline bg-page px-3 py-2 text-sm text-status-good">
+            WHOOP connected successfully.
+          </div>
+        )}
+        {whoopCallbackNotice?.kind === "error" && (
+          <div className="mt-2 rounded-md border border-hairline bg-page px-3 py-2 text-sm text-status-critical">
+            Couldn't connect WHOOP{whoopCallbackNotice.message ? `: ${whoopCallbackNotice.message}` : "."}
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-col gap-4">
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-ink-primary">WHOOP</div>
+                <div className="text-xs text-ink-secondary">Recovery, sleep and workout data</div>
+              </div>
+              {whoop?.connected ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={syncWhoopNow.isPending || whoop.lastSyncStatus === "SYNCING"}
+                    onClick={() => syncWhoopNow.mutate()}
+                  >
+                    {syncWhoopNow.isPending || whoop.lastSyncStatus === "SYNCING" ? "Syncing..." : "Sync now"}
+                  </Button>
+                  {!confirmingWhoopDisconnect ? (
+                    <Button size="sm" variant="danger" onClick={() => setConfirmingWhoopDisconnect(true)}>
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => {
+                          disconnectWhoop.mutate();
+                          setConfirmingWhoopDisconnect(false);
+                        }}
+                      >
+                        Confirm
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setConfirmingWhoopDisconnect(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={!whoop?.configured || connectWhoop.isPending}
+                  onClick={() => connectWhoop.mutate()}
+                >
+                  Connect WHOOP
+                </Button>
+              )}
+            </div>
+            {whoop?.connected && (
+              <div className="mt-1.5 text-xs text-ink-secondary">
+                {whoop.lastSyncAt
+                  ? `Last synced ${new Date(whoop.lastSyncAt).toLocaleString()}`
+                  : "Connected — not synced yet"}
+              </div>
+            )}
+            {whoop?.connected && whoop.lastSyncStatus === "ERROR" && whoop.lastSyncError && (
+              <div className="mt-1.5 rounded-md border border-hairline bg-page px-3 py-2 text-xs text-status-critical">
+                Last sync failed: {whoop.lastSyncError}
+              </div>
+            )}
+            {!whoop?.configured && !whoop?.connected && (
+              <p className="mt-1.5 text-xs text-ink-muted">
+                Not configured yet — set WHOOP_CLIENT_ID/SECRET in backend/.env.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <div className="font-medium text-ink-primary">Health Connect (Android)</div>
+            <div className="text-xs text-ink-secondary">Steps, weight, workouts and sleep from your phone</div>
+            <div className="mt-1.5 text-xs text-ink-secondary">
+              {healthConnect?.connected
+                ? `Connected — last synced ${healthConnect.lastSyncAt ? new Date(healthConnect.lastSyncAt).toLocaleString() : "just now"}`
+                : "Not connected yet — sign into the Momentum Android app with the same Google account"}
+            </div>
+          </div>
+
+          <p className="text-xs text-ink-muted">
+            MyFitnessPal sync isn't available in this build (their API is closed to new developers) — log meals
+            manually via Progress.
+          </p>
+        </div>
       </Card>
 
       <Card>
