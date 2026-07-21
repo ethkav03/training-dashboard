@@ -113,10 +113,10 @@ behind two different entry points.
 by `npm install`/Docker Compose. Opened separately in Android Studio.
 
 **Why it exists at all:** the product spec's Google Fit integration is a dead
-end (see the top of this doc and [roadmap.md](./roadmap.md)) — its intended
-replacement, Android Health Connect, is on-device-only with no cloud API a
-backend can call. Getting that data into Momentum genuinely requires a native
-app running on the device, not a web feature.
+end (see [Integrations](#integrations) below and [roadmap.md](./roadmap.md))
+— its intended replacement, Android Health Connect, is on-device-only with no
+cloud API a backend can call. Getting that data into Momentum genuinely
+requires a native app running on the device, not a web feature.
 
 ```
 android/

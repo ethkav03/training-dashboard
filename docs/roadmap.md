@@ -29,7 +29,7 @@ for the implementation detail behind each item.
 | 12 | Health Connect read + manual sync from the Android app (bounded historical read, mapper, `POST /integrations/health-connect/sync`) | Done (backend verified via curl; Android client written — `HealthConnectManager`/`Repository`/`Mapper`/`ViewModel`, `SyncScreen` wiring — but not yet compiled/run, same caveat as Sprint 11, see [architecture.md](./architecture.md#native-android-app)) |
 | — | **Interim feature additions** (mid-build, not their own sprint): meal-type categorization (`NutritionEntry.mealType`: Breakfast/Lunch/Dinner/Snacks, matching MyFitnessPal's diary layout, with time-of-day default); Recovery now logs `sleepScore` (0–100) and `strain` (0–21, 1 decimal) as pass-through headline metrics alongside the existing readiness score, with WHOOP sync computing "yesterday's strain" via previous-completed-cycle lookup | Done |
 | 13 | Android `WorkManager` periodic incremental sync (Health Connect changes-token, token-expiry fallback) | Done (backend unaffected; Android client written — `SyncWorker`/`SyncScheduler`/`HealthConnectSyncState` — but not yet compiled/run, same caveat as Sprints 11–12, see [architecture.md](./architecture.md#native-android-app)). Web Settings' Health Connect row shipped earlier than planned, alongside Sprint 9's WHOOP row; on-device steps display deferred, see below. |
-| 14 | Docs pass across all five `/docs` files for Sprints 8–13 + `.env.example` updates + Settings polish | Planned |
+| 14 | Docs pass across all five `/docs` files for Sprints 8–13 + `.env.example` updates + Settings polish | Done |
 
 ## Explicitly out of scope for this build
 

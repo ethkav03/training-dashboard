@@ -257,7 +257,7 @@ export function SettingsPage() {
 
           <div>
             <div className="font-medium text-ink-primary">Health Connect (Android)</div>
-            <div className="text-xs text-ink-secondary">Steps, weight, workouts and sleep from your phone</div>
+            <div className="text-xs text-ink-secondary">Weight, workouts and sleep from your phone</div>
             <div className="mt-1.5 text-xs text-ink-secondary">
               {healthConnect?.connected
                 ? `Connected — last synced ${healthConnect.lastSyncAt ? new Date(healthConnect.lastSyncAt).toLocaleString() : "just now"}`
