@@ -42,6 +42,11 @@ export function ExerciseProgressionPage() {
         <ChartCard
           title="Progression"
           subtitle="Estimated 1RM (line) and best set weight per session (dots — filled green on a new PR)"
+          legend={[
+            { color: "var(--series-1)", label: "Estimated 1RM" },
+            { color: "var(--text-secondary)", label: "Best set weight" },
+            { color: "var(--status-good)", label: "New PR" },
+          ]}
           chart={<ExerciseProgressionChart points={points} />}
           tableRows={points.map((p, i) => ({ ...p, id: String(i) }))}
           tableColumns={[

@@ -132,10 +132,12 @@ SVG fill/stroke props don't go through Tailwind).
 
 Light is the default; dark is a **selected** theme, not an automatic filter —
 `@media (prefers-color-scheme: dark)` supplies the OS-level default, and a
-`data-theme="dark"|"light"` attribute on `<html>` (toggled by the user)
-overrides it in both directions. There is no dark-mode toggle control wired
-into the UI yet in this build; the CSS is ready for one (see `index.css`'s
-`:root[data-theme="dark"]` block) but nothing currently sets `data-theme`.
+`data-theme="dark"|"light"` attribute on `<html>` (toggled by the user in
+Settings → Appearance) overrides it in both directions. The preference is
+applied in `main.tsx` before the app renders (reading `localStorage` via
+`frontend/src/lib/theme.ts`) so there's no flash of the wrong theme on load;
+choosing "System" clears the stored preference and falls back to the media
+query.
 
 Colors follow fixed roles, never assigned ad hoc:
 - **Categorical (pillar identity):** Training = blue (`--series-1`), Fuel =

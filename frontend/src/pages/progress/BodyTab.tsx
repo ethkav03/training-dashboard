@@ -51,6 +51,10 @@ export function BodyTab() {
         <ChartCard
           title="Weight trend"
           subtitle="Raw weigh-ins (muted) with a smoothed 7-day average (bold)"
+          legend={[
+            { color: "var(--text-secondary)", label: "Raw weigh-in" },
+            { color: "var(--series-4)", label: "7-day average" },
+          ]}
           chart={<WeightTrendChart trend={trend} />}
           tableRows={trend.raw}
           tableColumns={[

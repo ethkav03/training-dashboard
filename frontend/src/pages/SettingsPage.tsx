@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.js";
 import { deleteMe, exportDataUrl, updateMe } from "../api/users.js";
 import { Card, CardTitle } from "../components/ui/Card.js";
 import { Button } from "../components/ui/Button.js";
+import { applyThemePreference, getStoredThemePreference, type ThemePreference } from "../lib/theme.js";
 
 export function SettingsPage() {
   const { user, refreshUser, logout } = useAuth();
@@ -13,6 +14,12 @@ export function SettingsPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [burnBaseline, setBurnBaseline] = useState(user?.estimatedDailyBurnKcal?.toString() ?? "");
   const [savingBurn, setSavingBurn] = useState(false);
+  const [theme, setTheme] = useState<ThemePreference>(getStoredThemePreference());
+
+  function handleThemeChange(preference: ThemePreference) {
+    setTheme(preference);
+    applyThemePreference(preference);
+  }
 
   if (!user) return null;
 
@@ -82,6 +89,21 @@ export function SettingsPage() {
             onClick={() => handleUnitChange(UnitSystem.IMPERIAL)}
           >
             Imperial (lb/in)
+          </Button>
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Appearance</CardTitle>
+        <div className="mt-3 flex items-center gap-3">
+          <Button size="sm" variant={theme === "system" ? "primary" : "secondary"} onClick={() => handleThemeChange("system")}>
+            System
+          </Button>
+          <Button size="sm" variant={theme === "light" ? "primary" : "secondary"} onClick={() => handleThemeChange("light")}>
+            Light
+          </Button>
+          <Button size="sm" variant={theme === "dark" ? "primary" : "secondary"} onClick={() => handleThemeChange("dark")}>
+            Dark
           </Button>
         </div>
       </Card>
