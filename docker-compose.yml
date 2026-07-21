@@ -17,5 +17,50 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: momentum-backend
+    restart: unless-stopped
+    env_file:
+      - backend/.env
+    environment:
+      # Overrides backend/.env's host-facing DATABASE_URL (localhost:5433, for
+      # running the backend directly on the host) with the in-network address
+      # — containers reach postgres by service name on its container-internal port.
+      DATABASE_URL: postgresql://momentum:momentum@postgres:5432/momentum
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend:/app/backend
+      - ./packages/shared:/app/packages/shared
+      - /app/node_modules
+      - /app/backend/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: momentum-frontend
+    restart: unless-stopped
+    env_file:
+      - frontend/.env
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app/frontend
+      - ./packages/shared:/app/packages/shared
+      - /app/node_modules
+      - /app/frontend/node_modules
+    depends_on:
+      - backend
+
+  # Add future services (e.g. a cache or background worker) as siblings here —
+  # same network, same `depends_on` pattern, no changes needed elsewhere.
+
 volumes:
   momentum-postgres-data:

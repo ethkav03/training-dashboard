@@ -11,6 +11,8 @@ export function SettingsPage() {
   const navigate = useNavigate();
   const [savingUnits, setSavingUnits] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [burnBaseline, setBurnBaseline] = useState(user?.estimatedDailyBurnKcal?.toString() ?? "");
+  const [savingBurn, setSavingBurn] = useState(false);
 
   if (!user) return null;
 
@@ -21,6 +23,17 @@ export function SettingsPage() {
       await refreshUser();
     } finally {
       setSavingUnits(false);
+    }
+  }
+
+  async function handleSaveBurnBaseline(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingBurn(true);
+    try {
+      await updateMe({ estimatedDailyBurnKcal: burnBaseline ? Number(burnBaseline) : undefined });
+      await refreshUser();
+    } finally {
+      setSavingBurn(false);
     }
   }
 
@@ -71,6 +84,27 @@ export function SettingsPage() {
             Imperial (lb/in)
           </Button>
         </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Energy baseline</CardTitle>
+        <p className="mt-1 text-sm text-ink-secondary">
+          Your estimated daily calorie burn at rest, before training. Fuel uses this to estimate energy
+          balance — it's always shown as an estimate, never false precision.
+        </p>
+        <form className="mt-3 flex items-center gap-3" onSubmit={handleSaveBurnBaseline}>
+          <input
+            className="w-32 rounded-lg border border-hairline bg-page px-3 py-2 text-sm outline-none focus:border-series-2"
+            type="number"
+            value={burnBaseline}
+            onChange={(e) => setBurnBaseline(e.target.value)}
+            placeholder="2200"
+          />
+          <span className="text-sm text-ink-secondary">kcal/day</span>
+          <Button type="submit" size="sm" disabled={savingBurn}>
+            {savingBurn ? "Saving..." : "Save"}
+          </Button>
+        </form>
       </Card>
 
       <Card>

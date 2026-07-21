@@ -1,20 +1,14 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { clsx } from "clsx";
-import { Card } from "../components/ui/Card.js";
+import { BodyTab } from "./progress/BodyTab.js";
+import { FuelTab } from "./progress/FuelTab.js";
+import { RecoveryTab } from "./progress/RecoveryTab.js";
 
 const TABS = [
   { to: "body", label: "Body" },
   { to: "fuel", label: "Fuel" },
   { to: "recovery", label: "Recovery" },
 ];
-
-function TabPlaceholder({ name }: { name: string }) {
-  return (
-    <Card>
-      <p className="text-sm text-ink-secondary">{name} trends and history will appear here.</p>
-    </Card>
-  );
-}
 
 export function ProgressPage() {
   return (
@@ -40,9 +34,9 @@ export function ProgressPage() {
       </nav>
       <Routes>
         <Route index element={<Navigate to="body" replace />} />
-        <Route path="body" element={<TabPlaceholder name="Weight" />} />
-        <Route path="fuel" element={<TabPlaceholder name="Nutrition" />} />
-        <Route path="recovery" element={<TabPlaceholder name="Recovery" />} />
+        <Route path="body" element={<BodyTab />} />
+        <Route path="fuel" element={<FuelTab />} />
+        <Route path="recovery" element={<RecoveryTab />} />
       </Routes>
     </div>
   );
