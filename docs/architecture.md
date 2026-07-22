@@ -145,9 +145,9 @@ android/
     └── ui/
         ├── LoginScreen.kt          # Compose + Material3
         ├── navigation/             # MomentumDestination (6 tabs, mirrors web's NAV_ITEMS), MomentumBottomBar, MomentumNavHost
-        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), SettingsScreen (real) + placeholders for Training/Goals/Insights
-        ├── forms/                  # WeightEntryForm, NutritionEntryForm -- mirrors frontend/src/components/forms/, one file per entity, same component for create+edit
-        ├── charts/                 # MomentumChartCard (chart/table toggle) + WeightTrendChart/EnergyBalanceChart (Vico) -- mirrors frontend/src/components/charts/
+        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), TrainingScreen + ExerciseProgressionScreen, SettingsScreen (real) + placeholders for Goals/Insights
+        ├── forms/                  # WeightEntryForm, NutritionEntryForm, TrainingSessionForm -- mirrors frontend/src/components/forms/, one file per entity, same component for create+edit
+        ├── charts/                 # MomentumChartCard (chart/table toggle) + WeightTrendChart/EnergyBalanceChart/ExerciseProgressionChart (Vico) -- mirrors frontend/src/components/charts/
         ├── components/             # MomentumCard, MomentumButton, MomentumModalSheet -- mirrors frontend/src/components/ui/
         ├── cards/                  # ReadinessBadge, GoalCard, InsightCard -- mirrors frontend/src/components/cards/
         ├── timeline/               # TimelineEntryItem -- shared by Today's preview and the full Timeline screen (Sprint 20)
@@ -220,6 +220,42 @@ reference line web also shows; `EnergyBalanceChart`'s Vico setup (two-series
 grouped columns) is similarly best-recollection rather than confirmed
 against Vico's actual docs. Both are flagged inline with a link to
 Vico's guide to check against if they don't compile as written.
+
+**One real bug from this stretch worth remembering: Kotlin block comments
+nest.** Unlike C/Java/TS, `/* ... */` can nest in Kotlin, so a KDoc comment
+that happens to contain the literal text `/*` anywhere in its prose (e.g. a
+glob pattern like `routes/*.routes.ts` typed straight into a comment)
+silently opens an unterminated nested comment that swallows everything after
+it to end of file. This actually happened to `MomentumApi.kt`'s interface
+doc comment and took the entire interface down with it -- every repository
+and ViewModel that calls `MomentumApi` showed "unresolved reference" even
+though the bug was in one file. Worth a second look at any future doc
+comment that mentions a file-path glob.
+
+**Sprint 18 builds Training and exercise progression**
+(`ui/screens/TrainingScreen.kt` + `ExerciseProgressionScreen.kt`), mirroring
+`TrainingPage.tsx` and `training/ExerciseProgressionPage.tsx`: load-summary
+tiles (with an ACWR-over-1.5 warning), exercise-name chips that navigate to
+a nested `training/exercises/{exerciseName}` route (the first non-tab
+destination in the nav graph -- exercise names are URI-encoded via
+`Uri.encode`/`Uri.decode` since they can contain spaces), and a recent-
+sessions list expanding into per-exercise set summaries or match details.
+
+`ui/forms/TrainingSessionForm.kt` is the largest form in the app --
+activity-type-conditional sections (gym exercises-with-sets, match detail +
+free-form key-stats), matching `TrainingSessionForm.tsx`'s shape exactly.
+Compose has no `useFieldArray` equivalent, so the dynamic exercise/set/
+key-stat lists use a small state-holder-class pattern instead: each
+`ExerciseFormState`/`SetFormState`/`KeyStatFormState` holds its own
+`mutableStateOf` fields inside a `SnapshotStateList`, so editing one input
+only recomposes that row rather than the whole list. Same "no date picker
+yet" trim already accepted for `WeightEntryForm` -- defaults to now (or the
+session's existing date for edits).
+
+Written with if/else throughout instead of early returns this time, per the
+lesson from Sprint 17: neither `MomentumCard` nor `MomentumButton` is
+`inline`, so a labeled non-local return from their content/onClick lambdas
+is never legal Kotlin.
 
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
