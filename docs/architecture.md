@@ -145,9 +145,10 @@ android/
     └── ui/
         ├── LoginScreen.kt          # Compose + Material3
         ├── navigation/             # MomentumDestination (6 tabs, mirrors web's NAV_ITEMS), MomentumBottomBar, MomentumNavHost
-        ├── screens/                # SettingsScreen (real) + placeholder screens for Today/Progress/Training/Goals/Insights, filled in sprint by sprint
+        ├── screens/                # TodayScreen + SettingsScreen (real) + placeholders for Progress/Training/Goals/Insights, filled in sprint by sprint
         ├── components/             # MomentumCard, MomentumButton, MomentumModalSheet -- mirrors frontend/src/components/ui/
         ├── cards/                  # ReadinessBadge, GoalCard, InsightCard -- mirrors frontend/src/components/cards/
+        ├── timeline/               # TimelineEntryItem -- shared by Today's preview and the full Timeline screen (Sprint 20)
         └── theme/                  # Color/Theme/Type -- palette ported from frontend/src/styles/index.css
 ```
 
@@ -168,6 +169,28 @@ permission/sync UI moved into the new `SettingsScreen`, alongside profile
 info, matching where that same functionality lives in web's Settings page.
 Today/Progress/Training/Goals/Insights are placeholder screens until their
 own sprints (16-20) build the real thing.
+
+**Sprint 16 builds the Today screen** (`ui/screens/TodayScreen.kt` +
+`TodayViewModel.kt`), mirroring `TodayPage.tsx`: readiness card, four stat
+tiles, active-goals strip, top insights, recent achievements, today's
+timeline (`ui/timeline/TimelineEntryItem.kt`, shared with the future full
+Timeline screen), and quick-action buttons. Those buttons navigate to the
+relevant tab rather than opening an inline log form for now — the entry
+forms themselves don't exist yet (Sprints 17-19 build Body/Fuel/Training/
+Recovery/Goals) — an honest interim behavior, not the intended final one.
+
+This sprint also changed how tab switches behave, app-wide.
+`MomentumBottomBar` used to pass `saveState`/`restoreState = true` to
+`navController.navigate()` — the standard Navigation-Compose idiom for
+preserving each tab's scroll position and ViewModel across switches. But web
+deliberately does the opposite for its dashboard/summary queries
+(`refetchOnMount: "always"`), specifically so a write made in one tab (log a
+meal in Fuel) shows up immediately back on Today rather than showing stale
+cached data. Matching that behavior mattered more than preserving scroll
+position, so `saveState`/`restoreState` were dropped: every tab switch now
+fully recomposes the destination, and each screen's own
+`LaunchedEffect(Unit) { viewModel.refresh() }` naturally re-fires on every
+visit. This applies to every future screen the same way, not just Today.
 
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from

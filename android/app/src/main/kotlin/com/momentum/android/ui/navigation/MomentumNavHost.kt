@@ -14,17 +14,17 @@ import com.momentum.android.ui.screens.GoalsPlaceholderScreen
 import com.momentum.android.ui.screens.InsightsPlaceholderScreen
 import com.momentum.android.ui.screens.ProgressPlaceholderScreen
 import com.momentum.android.ui.screens.SettingsScreen
-import com.momentum.android.ui.screens.TodayPlaceholderScreen
+import com.momentum.android.ui.screens.TodayScreen
 import com.momentum.android.ui.screens.TrainingPlaceholderScreen
 
 /**
  * Replaces MainActivity's old if/else between LoginScreen and SyncScreen --
  * this is only ever shown once the user is authenticated (see
  * MainActivity), gating unauthenticated access the same way web's
- * ProtectedRoute does. Today/Progress/Training/Goals/Insights are
- * placeholders until their own sprints (16-20); Settings is real now,
- * having absorbed the Health Connect sync UI that used to be its own
- * standalone SyncScreen.
+ * ProtectedRoute does. Today (Sprint 16) and Settings are real;
+ * Progress/Training/Goals/Insights are placeholders until their own sprints
+ * (17-20). Settings absorbed the Health Connect sync UI that used to be its
+ * own standalone SyncScreen.
  */
 @Composable
 fun MomentumNavHost(
@@ -38,7 +38,7 @@ fun MomentumNavHost(
             startDestination = MomentumDestination.Today.route,
             modifier = Modifier.padding(padding),
         ) {
-            composable(MomentumDestination.Today.route) { TodayPlaceholderScreen() }
+            composable(MomentumDestination.Today.route) { TodayScreen(authViewModel, navController) }
             composable(MomentumDestination.Progress.route) { ProgressPlaceholderScreen() }
             composable(MomentumDestination.Training.route) { TrainingPlaceholderScreen() }
             composable(MomentumDestination.Goals.route) { GoalsPlaceholderScreen() }

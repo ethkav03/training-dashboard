@@ -31,6 +31,7 @@ for the implementation detail behind each item.
 | 13 | Android `WorkManager` periodic incremental sync (Health Connect changes-token, token-expiry fallback) | Done (backend unaffected; Android client written — `SyncWorker`/`SyncScheduler`/`HealthConnectSyncState` — but not yet compiled/run, same caveat as Sprints 11–12, see [architecture.md](./architecture.md#native-android-app)). Web Settings' Health Connect row shipped earlier than planned, alongside Sprint 9's WHOOP row; on-device steps display deferred, see below. |
 | 14 | Docs pass across all five `/docs` files for Sprints 8–13 + `.env.example` updates + Settings polish | Done |
 | 15 | Android full-parity foundation: complete DTO/enum port, full Retrofit surface (every backend route), a repository per resource, a real bottom-nav shell (`ui/navigation/`) replacing the old two-screen if/else, shared UI primitives (`ui/components/`, `ui/cards/`), ported color palette, Health Connect UI relocated from the retired `SyncScreen` into the new `SettingsScreen` | Done, real build/run in progress with the user in Android Studio |
+| 16 | Android Today screen (`TodayScreen`/`TodayViewModel`): readiness card, stat tiles, goals strip, insights, achievements, today's timeline, quick actions. Also dropped `saveState`/`restoreState` from the bottom-nav tab switches app-wide, matching web's `refetchOnMount: "always"` freshness-over-scroll-position priority | Done |
 
 Since Sprint 11, the Android app has moved from "written but unverified" to
 actually being built and run in Android Studio, with several real errors

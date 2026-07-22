@@ -23,11 +23,20 @@ fun MomentumBottomBar(navController: NavHostController) {
         MomentumDestination.entries.forEach { destination ->
             NavigationBarItem(
                 selected = currentRoute == destination.route,
+                // No saveState/restoreState: web's dashboard/summary queries
+                // use refetchOnMount:"always" specifically so a write made
+                // in one tab (e.g. logging a meal in Fuel) shows up
+                // immediately when you switch back to Today, rather than
+                // showing stale cached data. Matching that here means each
+                // tab switch fully recomposes the destination -- so every
+                // screen's own LaunchedEffect(Unit) load naturally re-fires
+                // on every visit. Trade-off: scroll position within a tab
+                // isn't preserved across switches, which is a minor loss
+                // next to staying correct.
                 onClick = {
                     navController.navigate(destination.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
-                        restoreState = true
                     }
                 },
                 icon = { Text(destination.icon) },
