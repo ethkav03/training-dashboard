@@ -8,3 +8,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Android Studio's built-in AI assistant scratch output -- IDE-local, not
+# project source.
+.artifacts/
