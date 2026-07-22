@@ -91,10 +91,11 @@ data class HealthConnectSyncResultDto(
 )
 
 /**
- * Full REST surface mirroring backend/src/routes/*.routes.ts, grouped the
- * same way the backend itself groups them. Every DTO comes from
- * network/dto/ and is a hand-ported mirror of packages/shared/src/dto.ts --
- * kept name-aligned so the two are easy to cross-reference, not generated.
+ * Full REST surface mirroring the backend's route files under
+ * backend/src/routes/, grouped the same way the backend itself groups them.
+ * Every DTO comes from network/dto/ and is a hand-ported mirror of
+ * packages/shared/src/dto.ts -- kept name-aligned so the two are easy to
+ * cross-reference, not generated.
  */
 interface MomentumApi {
 

@@ -12,7 +12,7 @@ import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
-import com.patrykandpatrick.vico.compose.chart.column.lineComponent
+import com.patrykandpatrick.vico.compose.component.lineComponent
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.entryOf
 
@@ -23,6 +23,11 @@ import com.patrykandpatrick.vico.core.entry.entryOf
  * if this doesn't compile, particularly the two-series grouped-column setup
  * (ChartEntryModelProducer with multiple entry collections + ColumnChart's
  * merge mode), which is the part of this file I'm least certain of verbatim.
+ * `lineComponent`'s package was already wrong once (guessed
+ * chart.column, actually needed component) -- if it's still unresolved,
+ * the fallback is to drop the custom `columns` param entirely and let
+ * `columnChart()` use its own default styling (loses brand-color matching
+ * for this one chart, but compiles and still shows two visually distinct bars).
  */
 @Composable
 fun EnergyBalanceChart(points: List<EnergyBalancePointDto>) {
