@@ -30,6 +30,7 @@ import com.momentum.android.network.dto.WeightEntryDto
 import com.momentum.android.network.dto.WeightTrendDto
 import com.momentum.android.network.dto.WhoopSyncResultDto
 import kotlinx.serialization.Serializable
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -38,6 +39,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 @Serializable
 data class GoogleMobileAuthRequest(val idToken: String)
@@ -119,6 +121,14 @@ interface MomentumApi {
 
     @DELETE("users/me")
     suspend fun deleteAccount()
+
+    // Raw JSON body (not a fixed DTO -- the backend returns the raw Prisma
+    // user row plus every pillar's records, unrelated to toUserDto()'s
+    // shape). Android just streams it straight to a user-picked file rather
+    // than parsing it into typed models.
+    @Streaming
+    @GET("users/me/export")
+    suspend fun exportData(): ResponseBody
 
     // -- Weight (Body) --
     @GET("weight")

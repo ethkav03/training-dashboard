@@ -28,8 +28,8 @@ class AuthViewModel(
 
     init {
         // A stored token from a previous session still needs the user
-        // re-fetched (and needs validating -- see refreshCurrentUser).
-        if (repository.storedToken != null) refreshCurrentUser()
+        // re-fetched (and needs validating -- see refresh).
+        if (repository.storedToken != null) refresh()
     }
 
     fun signIn() {
@@ -43,7 +43,7 @@ class AuthViewModel(
                     repository.exchangeIdToken(result.idToken)
                         .onSuccess { token ->
                             _state.value = _state.value.copy(token = token, isLoading = false)
-                            refreshCurrentUser()
+                            refresh()
                         }
                         .onFailure { error ->
                             _state.value = _state.value.copy(
@@ -61,7 +61,22 @@ class AuthViewModel(
         _state.value = AuthUiState()
     }
 
-    private fun refreshCurrentUser() {
+    /**
+     * Adopts a fresh UserDto a mutation endpoint already returned (profile
+     * update, onboarding complete/skip) -- avoids a redundant GET /users/me
+     * just to pick up the same data the mutation's response already has.
+     */
+    fun setUser(user: UserDto) {
+        _state.value = _state.value.copy(user = user)
+    }
+
+    /**
+     * Re-fetches the current user -- also used after onboarding/profile
+     * mutations so `state.user.onboardingStatus` (which gates nav in
+     * MainActivity) and unit/energy-baseline fields stay in sync with what
+     * was just saved, without every screen needing its own user-refresh path.
+     */
+    fun refresh() {
         viewModelScope.launch {
             repository.fetchCurrentUser()
                 .onSuccess { user -> _state.value = _state.value.copy(user = user) }

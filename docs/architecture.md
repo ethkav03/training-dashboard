@@ -122,7 +122,7 @@ requires a native app running on the device, not a web feature.
 android/
 ├── app/build.gradle.kts          # minSdk 26 (Health Connect client library floor)
 └── app/src/main/kotlin/com/momentum/android/
-    ├── MainActivity.kt            # single Activity, Compose content, branches on auth state
+    ├── MainActivity.kt            # single Activity, Compose content, gates on auth/onboarding state
     ├── auth/
     │   ├── GoogleSignInManager.kt  # Credential Manager -> Google ID token
     │   ├── AuthRepository.kt       # exchanges ID token for a Momentum JWT, stores it
@@ -145,7 +145,7 @@ android/
     └── ui/
         ├── LoginScreen.kt          # Compose + Material3
         ├── navigation/             # MomentumDestination (6 tabs, mirrors web's NAV_ITEMS), MomentumBottomBar, MomentumNavHost
-        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), TrainingScreen + ExerciseProgressionScreen, GoalsScreen, InsightsScreen, TimelineScreen, SettingsScreen -- every screen is real, no placeholders left
+        ├── screens/                # OnboardingScreen, TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), TrainingScreen + ExerciseProgressionScreen, GoalsScreen, InsightsScreen, TimelineScreen, SettingsScreen -- every screen is real, no placeholders left
         ├── forms/                  # WeightEntryForm, NutritionEntryForm, TrainingSessionForm, RecoveryEntryForm, GoalForm -- mirrors frontend/src/components/forms/, one file per entity, same component for create+edit
         ├── charts/                 # MomentumChartCard (chart/table toggle) + WeightTrendChart/EnergyBalanceChart/ExerciseProgressionChart (Vico) -- mirrors frontend/src/components/charts/
         ├── components/             # MomentumCard, MomentumButton, MomentumModalSheet -- mirrors frontend/src/components/ui/
@@ -342,6 +342,66 @@ rather than a private literal duplicated in each.
 With Insights and Timeline done, `ui/screens/PlaceholderScreens.kt` (the
 `ComingSoonScreen` stand-in used since Sprint 15) has nothing left to back
 and was deleted outright rather than left as dead code.
+
+**Sprint 21 builds Settings' remaining sections and the Onboarding flow.**
+`SettingsScreen.kt` gains three sections, mirroring `SettingsPage.tsx`
+exactly: a **Units** card (Metric/Imperial toggle -- the entire "units"
+concept web has, one flat `UserDto.unitSystem` field, no separate distance
+or energy unit), an **Energy baseline** card (`estimatedDailyBurnKcal`, a
+plain positive-int field used by Fuel's energy-balance calc), and a **Data
+controls** card (export + delete account). Both Units and Energy baseline
+save via the same `PATCH /users/me` `updateProfile` call already wired since
+Sprint 15 — a new `SettingsViewModel` wraps it (plus export/delete) so
+`SettingsScreen` doesn't launch raw coroutines itself, and since the mutation
+endpoints already return the fresh `UserDto`, a new `AuthViewModel.setUser()`
+adopts it directly rather than paying for a redundant `GET /users/me`
+refetch.
+
+**Export** has no Android equivalent of web's `<a href>` download — there's
+no cookie session and no bare URL can carry a Bearer token — so it uses
+Storage Access Framework's `CreateDocument("application/json")` picker
+instead: the user picks a save location, then the authenticated
+`GET /users/me/export` response streams straight to that `Uri` via
+`ContentResolver.openOutputStream()` on `Dispatchers.IO`. The endpoint itself
+returns a raw, unshaped JSON blob (the actual Prisma `user` row plus every
+pillar's records, not `toUserDto()`'s shape), so `MomentumApi.exportData()`
+returns a plain OkHttp `ResponseBody` (`@Streaming`) rather than a typed DTO
+— there's nothing to type it as, and nothing needs to parse it, only save it.
+**Delete account** mirrors web's inline (not modal) two-step confirm, then
+calls `authViewModel.signOut()` to clear the local token and drop back to
+`LoginScreen`.
+
+**Onboarding** (`ui/screens/OnboardingScreen.kt` + `OnboardingViewModel.kt`)
+didn't exist at all before this sprint. Like web's `OnboardingPage.tsx`,
+it's one single form, not a multi-step wizard: units, height, current
+weight, a primary-goal picker (`FilterChip` row, since Compose has no native
+`<select>` — five options, but only `LOSE_WEIGHT`/`GAIN_MUSCLE` actually
+produce a goal object, matching web's own dead-ended `MAINTAIN`/
+`IMPROVE_PERFORMANCE`/`CUSTOM` options), a conditionally-shown target weight,
+and training frequency. `POST /users/me/onboarding` (Save) and
+`POST /users/me/onboarding/skip` (Skip) both return the updated `UserDto`,
+pushed into `AuthViewModel` the same way Settings' mutations are.
+
+Gating lives in `MainActivity.kt`, mirroring
+`ProtectedRoute.tsx`'s exact order -- loading, then login, then onboarding,
+then the main app:
+
+```kotlin
+when {
+    authState.token == null -> LoginScreen(...)
+    authState.user == null -> /* token restored but GET /users/me hasn't
+                                  returned yet -- avoids flashing the main
+                                  nav host before onboardingStatus is known */
+    authState.user?.onboardingStatus == OnboardingStatus.PENDING -> OnboardingScreen(...)
+    else -> MomentumNavHost(...)
+}
+```
+
+Both `SKIPPED` and `COMPLETED` count as "done," same as web -- only
+`PENDING` (the Prisma default for every new user) blocks the main app.
+Saving or skipping doesn't navigate anywhere explicitly; flipping
+`onboardingStatus` via `setUser()` just makes this `when` fall through to
+`MomentumNavHost` on the next recomposition.
 
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
