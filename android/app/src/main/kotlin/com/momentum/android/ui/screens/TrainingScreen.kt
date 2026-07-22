@@ -2,6 +2,7 @@ package com.momentum.android.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,6 +52,7 @@ private val ACTIVITY_LABELS = mapOf(
 private val DATE_FORMATTER = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 /** Mirrors frontend/src/pages/TrainingPage.tsx. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TrainingScreen(onOpenExercise: (String) -> Unit) {
     val context = LocalContext.current
