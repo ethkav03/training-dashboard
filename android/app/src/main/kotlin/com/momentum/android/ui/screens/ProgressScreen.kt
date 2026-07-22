@@ -14,11 +14,7 @@ import androidx.compose.ui.Modifier
 
 private val PROGRESS_TABS = listOf("Body", "Fuel", "Recovery")
 
-/**
- * Mirrors web's Progress page, which hosts Body/Fuel/Recovery as sub-tabs
- * under one top-level nav destination. Recovery lands in Sprint 19; it's
- * listed here now so the tab strip doesn't reshuffle positions later.
- */
+/** Mirrors web's Progress page, which hosts Body/Fuel/Recovery as sub-tabs under one top-level nav destination. */
 @Composable
 fun ProgressScreen() {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -32,14 +28,7 @@ fun ProgressScreen() {
         when (selectedTab) {
             0 -> BodyScreen()
             1 -> FuelScreen()
-            else -> RecoveryPlaceholderTab()
+            else -> RecoveryScreen()
         }
-    }
-}
-
-@Composable
-private fun RecoveryPlaceholderTab() {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text("Recovery is coming in a later sprint.")
     }
 }

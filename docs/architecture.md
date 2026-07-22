@@ -145,8 +145,8 @@ android/
     └── ui/
         ├── LoginScreen.kt          # Compose + Material3
         ├── navigation/             # MomentumDestination (6 tabs, mirrors web's NAV_ITEMS), MomentumBottomBar, MomentumNavHost
-        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), TrainingScreen + ExerciseProgressionScreen, SettingsScreen (real) + placeholders for Goals/Insights
-        ├── forms/                  # WeightEntryForm, NutritionEntryForm, TrainingSessionForm -- mirrors frontend/src/components/forms/, one file per entity, same component for create+edit
+        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), TrainingScreen + ExerciseProgressionScreen, GoalsScreen, SettingsScreen (real) + a placeholder for Insights
+        ├── forms/                  # WeightEntryForm, NutritionEntryForm, TrainingSessionForm, RecoveryEntryForm, GoalForm -- mirrors frontend/src/components/forms/, one file per entity, same component for create+edit
         ├── charts/                 # MomentumChartCard (chart/table toggle) + WeightTrendChart/EnergyBalanceChart/ExerciseProgressionChart (Vico) -- mirrors frontend/src/components/charts/
         ├── components/             # MomentumCard, MomentumButton, MomentumModalSheet -- mirrors frontend/src/components/ui/
         ├── cards/                  # ReadinessBadge, GoalCard, InsightCard -- mirrors frontend/src/components/cards/
@@ -301,6 +301,25 @@ icon set -- Edit/Delete/Close and similar -- not
 `material-icons-extended`'s ~2000 icons, which would've been overkill for a
 handful of common glyphs); its version comes from the existing Compose BOM,
 not guessed independently the way Vico's was.
+
+**Sprint 19 builds Recovery and Goals**, filling in `ProgressScreen`'s last
+sub-tab and the app's last data-entry tab, mirroring
+`progress/RecoveryTab.tsx` and `GoalsPage.tsx`:
+
+- `RecoveryScreen`/`RecoveryEntryForm`: today's readiness (score/badge/
+  sleep/yesterday's strain/recommendation) plus history, matching web's
+  three-stat layout already used on Today. `RecoveryEntryForm` is upsert-
+  only, same as web -- there's no separate edit mode, since logging again
+  for today just updates that day's row (the backend keys on `(userId,
+  date)`).
+- `GoalsScreen`/`GoalForm`: goal-type-conditional exercise picker (only for
+  `EXERCISE_PERFORMANCE`), pulling exercise names via a small standalone
+  `TrainingRepository` fetch inside the form rather than threading them down
+  from the screen -- a self-contained concern, same as web's own
+  `useExerciseNames()` call living inside `GoalForm.tsx` rather than
+  `GoalsPage.tsx`. `GoalCard`'s `onTogglePause`/`onDelete` callbacks (written
+  back in Sprint 15 as presentation-only props, unused until now) finally
+  get real implementations wired to `GoalsViewModel`.
 
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
