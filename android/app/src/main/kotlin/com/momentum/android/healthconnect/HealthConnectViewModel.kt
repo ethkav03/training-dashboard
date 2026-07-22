@@ -39,18 +39,37 @@ class HealthConnectViewModel(
     fun installOrUpdateIntent() = manager.installOrUpdateIntent()
 
     init {
-        refreshStatus()
+        // Runs once, the first time this ViewModel is created -- which
+        // coincides with the user actually being signed in (see
+        // MainActivity: this ViewModel is only ever referenced from
+        // SyncScreen, itself only shown once authState.token != null). If
+        // Health Connect access is already granted, sync immediately rather
+        // than waiting for a manual "Sync now" tap -- mirrors the backend
+        // auto-syncing WHOOP on every login (auth.routes.ts).
+        viewModelScope.launch {
+            if (checkPermissionsAndUpdateState()) {
+                SyncScheduler.schedule(appContext)
+                syncNow()
+            }
+        }
     }
 
     fun refreshStatus() {
         viewModelScope.launch {
-            val granted = runCatching { manager.hasAllPermissions() }.getOrDefault(false)
-            _state.value = _state.value.copy(availability = manager.availability, permissionsGranted = granted)
             // Idempotent (KEEP policy) -- safe to call every time this
             // screen confirms permissions are still granted, e.g. on every
-            // app open, not just the first time they're granted.
-            if (granted) SyncScheduler.schedule(appContext)
+            // app open, not just the first time they're granted. Does not
+            // re-trigger a sync -- that's a one-time login event, handled
+            // in init above -- so repeat visits to this screen don't spam
+            // syncs on their own.
+            if (checkPermissionsAndUpdateState()) SyncScheduler.schedule(appContext)
         }
+    }
+
+    private suspend fun checkPermissionsAndUpdateState(): Boolean {
+        val granted = runCatching { manager.hasAllPermissions() }.getOrDefault(false)
+        _state.value = _state.value.copy(availability = manager.availability, permissionsGranted = granted)
+        return granted
     }
 
     fun onPermissionsResult(granted: Set<String>) {

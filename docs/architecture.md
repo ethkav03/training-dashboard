@@ -146,9 +146,22 @@ android/
 Auth (Sprint 11) stayed deliberately narrow: sign in, store the token, show
 the signed-in user's name via `GET /users/me`. Sprint 12 added Health Connect:
 permission request + a manual "Sync now" that reads a bounded history and
-posts it to `POST /integrations/health-connect/sync`. This sprint adds the
+posts it to `POST /integrations/health-connect/sync`. Sprint 13 added the
 background half — periodic `WorkManager` sync using Health Connect's
 changes-token so it isn't re-reading 30 days of history every ~6 hours.
+
+**Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
+ever runs once per sign-in — this ViewModel is first referenced from
+`SyncScreen`, itself only shown once `authState.token != null`) checks
+permission status and, if Health Connect access is already granted, calls
+`syncNow()` immediately rather than waiting for a manual tap. This mirrors
+the backend auto-syncing WHOOP on every login (see
+[api-reference.md](./api-reference.md#auth--authroutests)) — the goal is
+that whichever provider a user has connected, opening either app pulls fresh
+data without them having to remember to. `refreshStatus()` (called every
+time the screen is revisited) deliberately does **not** re-trigger a sync —
+only the one-time `init` path does — so navigating back to this screen
+doesn't spam syncs on its own.
 
 **Health Connect read path**, `healthconnect/`:
 

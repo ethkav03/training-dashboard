@@ -5,6 +5,7 @@ import { env, isGoogleOAuthConfigured } from "../config/env.js";
 import { signUserToken } from "../lib/jwt.js";
 import { prisma } from "../lib/prisma.js";
 import { upsertUserFromGoogleIdentity } from "../services/userService.js";
+import { syncWhoopInBackground } from "../services/whoopService.js";
 import { validateBody } from "../middleware/validate.js";
 import { googleMobileSchema } from "../validation/auth.validation.js";
 import { ApiError } from "../middleware/errorHandler.js";
@@ -34,6 +35,7 @@ if (env.nodeEnv !== "production") {
         },
       });
       const token = signUserToken({ sub: user.id, email: user.email });
+      syncWhoopInBackground(user.id);
       res.json({ token });
     } catch (err) {
       next(err);
@@ -62,6 +64,7 @@ authRouter.get(
   (req, res) => {
     const user = req.user as User;
     const token = signUserToken({ sub: user.id, email: user.email });
+    syncWhoopInBackground(user.id);
     res.redirect(`${env.frontendUrl}/auth/callback?token=${token}`);
   }
 );
@@ -90,6 +93,7 @@ authRouter.post("/google/mobile", validateBody(googleMobileSchema), async (req, 
       name: payload.name ?? payload.email,
       avatarUrl: payload.picture ?? null,
     });
+    syncWhoopInBackground(user.id);
     res.json({ token: signUserToken({ sub: user.id, email: user.email }) });
   } catch (err) {
     next(err instanceof Error && !(err instanceof ApiError) ? new ApiError(401, "InvalidGoogleToken") : err);

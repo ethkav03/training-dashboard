@@ -7,6 +7,13 @@ page lists routes and intent, not full field-level schemas.
 
 ## Auth — `auth.routes.ts`
 
+Every successful login here (dev-login, web OAuth callback, mobile exchange) also
+fires `syncWhoopInBackground(user.id)` (`whoopService.ts`) — not awaited, so it never
+delays the login response. A connected WHOOP account gets its latest recovery/sleep/
+workout data pulled automatically on every sign-in, regardless of which client
+(web or Android) logged in; users with no WHOOP connection cost one cheap no-op
+lookup, since `syncWhoopData()` already returns gracefully rather than throwing.
+
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/auth/google` | Starts the OAuth flow. 503 if `GOOGLE_CLIENT_ID/SECRET` aren't set. |

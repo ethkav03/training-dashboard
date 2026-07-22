@@ -438,3 +438,15 @@ export async function syncWhoopData(userId: string): Promise<WhoopSyncResultDto>
     };
   }
 }
+
+// Fired (not awaited) right after every login -- web callback, mobile
+// exchange, and dev-login all call this so a connected WHOOP account stays
+// fresh without the user ever having to remember to hit "Sync now." Safe to
+// call unconditionally: syncWhoopData() already no-ops gracefully (returns
+// an ERROR-status result, doesn't throw) when the user has no WHOOP
+// connection at all, so callers never need to check first.
+export function syncWhoopInBackground(userId: string): void {
+  syncWhoopData(userId).catch((err) => {
+    console.error(`Background WHOOP sync failed for user ${userId}:`, err);
+  });
+}
