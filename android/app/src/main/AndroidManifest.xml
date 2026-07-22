@@ -5,7 +5,7 @@
 
     <!-- Read-only Health Connect grants. Steps is requested to complete the
          permission flow the product spec asks for, but has no home in our
-         data model yet -- see docs/roadmap.md's "possible next steps". -->
+         data model yet: see docs/roadmap.md's "possible next steps". -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
@@ -40,7 +40,7 @@
         </activity>
 
         <!-- Health Connect shows the user "why does this app want my data"
-             via this alias rather than a real activity -- required for the
+             via this alias rather than a real activity: required for the
              permissions rationale entry point, not just launched normally. -->
         <activity-alias
             android:name=".ViewPermissionUsageActivity"
