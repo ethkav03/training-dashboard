@@ -34,6 +34,7 @@ import com.momentum.android.network.dto.WorkoutDto
 import com.momentum.android.network.dto.WorkoutExerciseDto
 import com.momentum.android.network.dto.WorkoutSetDto
 import com.momentum.android.ui.components.MomentumButton
+import com.momentum.android.ui.components.MomentumDeleteIconButton
 import com.momentum.android.ui.components.MomentumModalSheet
 import com.momentum.android.ui.theme.MomentumTheme
 import java.time.Instant
@@ -227,9 +228,7 @@ fun TrainingSessionForm(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        TextButton(onClick = { keyStats.removeAt(index) }) {
-                            Text("✕", color = MomentumTheme.colors.statusCritical)
-                        }
+                        MomentumDeleteIconButton(onClick = { keyStats.removeAt(index) }, contentDescription = "Remove stat")
                     }
                 }
                 TextButton(onClick = { keyStats.add(KeyStatFormState()) }) { Text("+ Add stat") }
@@ -318,7 +317,7 @@ private fun ExerciseEditor(exercise: ExerciseFormState, onRemoveExercise: () -> 
                 label = { Text("Exercise name") },
                 modifier = Modifier.fillMaxWidth(),
             )
-            TextButton(onClick = onRemoveExercise) { Text("✕", color = MomentumTheme.colors.statusCritical) }
+            MomentumDeleteIconButton(onClick = onRemoveExercise, contentDescription = "Remove exercise")
         }
         exercise.sets.forEachIndexed { setIndex, set ->
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -345,7 +344,7 @@ private fun ExerciseEditor(exercise: ExerciseFormState, onRemoveExercise: () -> 
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Checkbox(checked = set.isWarmup, onCheckedChange = { set.isWarmup = it })
-                TextButton(onClick = { exercise.sets.removeAt(setIndex) }) { Text("✕") }
+                MomentumDeleteIconButton(onClick = { exercise.sets.removeAt(setIndex) }, contentDescription = "Remove set")
             }
         }
         TextButton(onClick = { exercise.sets.add(SetFormState()) }) { Text("+ Add set") }

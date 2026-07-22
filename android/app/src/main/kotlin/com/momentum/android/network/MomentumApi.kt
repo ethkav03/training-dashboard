@@ -28,6 +28,7 @@ import com.momentum.android.network.dto.UpsertRecoveryRecordRequest
 import com.momentum.android.network.dto.UserDto
 import com.momentum.android.network.dto.WeightEntryDto
 import com.momentum.android.network.dto.WeightTrendDto
+import com.momentum.android.network.dto.WhoopSyncResultDto
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -252,6 +253,13 @@ interface MomentumApi {
     // -- Integrations --
     @GET("integrations")
     suspend fun getIntegrations(): List<IntegrationConnectionDto>
+
+    // Connect/disconnect stay web-only (see docs/architecture.md's Native
+    // Android app section) -- but syncing an *already-connected* WHOOP
+    // account needs no OAuth flow, just this same authenticated POST the
+    // web "Sync now" button already calls, so it's fair game from Android too.
+    @POST("integrations/whoop/sync")
+    suspend fun syncWhoop(): WhoopSyncResultDto
 
     @POST("integrations/health-connect/sync")
     suspend fun syncHealthConnect(@Body body: HealthConnectSyncRequest): HealthConnectSyncResultDto

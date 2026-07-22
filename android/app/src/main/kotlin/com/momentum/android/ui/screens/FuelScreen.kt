@@ -37,6 +37,7 @@ import com.momentum.android.ui.components.MomentumButton
 import com.momentum.android.ui.components.MomentumButtonSize
 import com.momentum.android.ui.components.MomentumCard
 import com.momentum.android.ui.components.MomentumCardTitle
+import com.momentum.android.ui.components.MomentumEditDeleteActions
 import com.momentum.android.ui.forms.NutritionEntryForm
 import com.momentum.android.ui.theme.MomentumTheme
 import kotlin.math.max
@@ -207,12 +208,10 @@ fun FuelScreen() {
                                     }
                                     Text(macros, style = MaterialTheme.typography.labelSmall, color = MomentumTheme.colors.textSecondary)
                                 }
-                                Row {
-                                    TextButton(onClick = { editingEntry = entry }) { Text("Edit") }
-                                    TextButton(onClick = { viewModel.delete(entry.id) }) {
-                                        Text("Remove", color = MomentumTheme.colors.statusCritical)
-                                    }
-                                }
+                                MomentumEditDeleteActions(
+                                    onEdit = { editingEntry = entry },
+                                    onDelete = { viewModel.delete(entry.id) },
+                                )
                             }
                         }
                     }

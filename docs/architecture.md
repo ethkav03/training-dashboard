@@ -257,6 +257,51 @@ lesson from Sprint 17: neither `MomentumCard` nor `MomentumButton` is
 `inline`, so a labeled non-local return from their content/onClick lambdas
 is never legal Kotlin.
 
+**A `LazyColumn` inside `verticalScroll` crashed on launch.** Right after
+sign-in, `TodayScreen`'s timeline preview used a `LazyColumn` nested inside
+the screen's own top-level `Column(Modifier.verticalScroll(...))` --
+`LazyColumn` needs bounded height to know how much to lazily compose, and an
+unbounded scrollable parent hands it infinite height instead, which Compose
+treats as a hard `IllegalStateException`, not a silent bug. Today's timeline
+is small and already fully loaded (nothing virtualization would help with
+anyway), so it's a plain `Column` + `forEach` now, matching every other list
+on that screen. Worth checking for the same shape (`LazyColumn`/`LazyRow`
+directly inside a `verticalScroll`/`horizontalScroll` container) before
+adding either to a new screen.
+
+**WHOOP manual sync from Android.** The original Android-parity plan kept
+WHOOP fully read-only on mobile to avoid building Custom-Tabs OAuth capture
+for connect/disconnect. But *syncing an already-connected account* needs no
+OAuth at all -- it's the same authenticated `POST /integrations/whoop/sync`
+the web "Sync now" button already calls, and the backend doesn't care which
+client sends it. `SettingsScreen` now has a WHOOP card (status, last-synced
+time, a "Sync now" button when connected) backed by a new
+`IntegrationsViewModel` -- connect/disconnect still only exist on web.
+
+**Dark/Light/System appearance**, matching web's own three-way toggle.
+`ThemePreferenceStore` persists the choice via DataStore (same pattern as
+`HealthConnectSyncState`), `ThemeViewModel` lives at the Activity level
+alongside `AuthViewModel`/`HealthConnectViewModel` so `MainActivity` can
+resolve the actual boolean `MomentumTheme(darkTheme = ...)` needs before
+gating on auth state, and `SettingsScreen` exposes the same choice web's
+Appearance section does. `MomentumTheme`'s `darkTheme` parameter already
+defaulted to `isSystemInDarkTheme()`; `MainActivity` now always passes an
+explicit resolved value instead of relying on that default.
+
+**Icon buttons over text**, per user request. New
+`ui/components/MomentumEditDeleteActions.kt`: `MomentumEditDeleteActions`
+(paired pen/trash `IconButton`s, for every entry list's Edit/Remove pair --
+Body, Fuel, Training, `GoalCard`) and `MomentumDeleteIconButton` (a lone
+trash icon for form-internal "remove this row" actions with no paired edit,
+e.g. `TrainingSessionForm`'s exercise/set/key-stat rows).
+`MomentumModalSheet`'s literal `"✕"` close button became a proper close
+icon too. Needed one new dependency,
+`androidx.compose.material:material-icons-core` (the small curated core
+icon set -- Edit/Delete/Close and similar -- not
+`material-icons-extended`'s ~2000 icons, which would've been overkill for a
+handful of common glyphs); its version comes from the existing Compose BOM,
+not guessed independently the way Vico's was.
+
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
 `MomentumNavHost`, itself only shown once `authState.token != null`) checks

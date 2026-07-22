@@ -20,6 +20,7 @@ import com.momentum.android.ui.screens.ProgressScreen
 import com.momentum.android.ui.screens.SettingsScreen
 import com.momentum.android.ui.screens.TodayScreen
 import com.momentum.android.ui.screens.TrainingScreen
+import com.momentum.android.ui.theme.ThemeViewModel
 
 private const val EXERCISE_PROGRESSION_ROUTE = "training/exercises/{exerciseName}"
 
@@ -36,6 +37,7 @@ private const val EXERCISE_PROGRESSION_ROUTE = "training/exercises/{exerciseName
 fun MomentumNavHost(
     authViewModel: AuthViewModel,
     healthConnectViewModel: HealthConnectViewModel,
+    themeViewModel: ThemeViewModel,
     navController: NavHostController = rememberNavController(),
 ) {
     Scaffold(bottomBar = { MomentumBottomBar(navController) }) { padding ->
@@ -59,7 +61,11 @@ fun MomentumNavHost(
             composable(MomentumDestination.Goals.route) { GoalsPlaceholderScreen() }
             composable(MomentumDestination.Insights.route) { InsightsPlaceholderScreen() }
             composable(MomentumDestination.Settings.route) {
-                SettingsScreen(authViewModel = authViewModel, healthConnectViewModel = healthConnectViewModel)
+                SettingsScreen(
+                    authViewModel = authViewModel,
+                    healthConnectViewModel = healthConnectViewModel,
+                    themeViewModel = themeViewModel,
+                )
             }
         }
     }

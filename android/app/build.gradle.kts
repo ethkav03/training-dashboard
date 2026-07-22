@@ -65,6 +65,11 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // Core icon set only (Edit/Delete/Close etc.) -- not material-icons-extended,
+    // whose ~2000-icon size and separate version cadence isn't worth it for
+    // a handful of common glyphs. Version comes from the Compose BOM above,
+    // not guessed.
+    implementation(libs.androidx.material.icons.core)
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.vico.compose)

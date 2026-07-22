@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,6 +29,7 @@ import com.momentum.android.ui.components.MomentumButton
 import com.momentum.android.ui.components.MomentumButtonSize
 import com.momentum.android.ui.components.MomentumCard
 import com.momentum.android.ui.components.MomentumCardTitle
+import com.momentum.android.ui.components.MomentumEditDeleteActions
 import com.momentum.android.ui.forms.WeightEntryForm
 import com.momentum.android.ui.theme.MomentumTheme
 import java.time.Instant
@@ -120,12 +120,10 @@ fun BodyScreen() {
                                 }
                                 Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MomentumTheme.colors.textSecondary)
                             }
-                            Row {
-                                TextButton(onClick = { editingEntry = entry }) { Text("Edit") }
-                                TextButton(onClick = { viewModel.delete(entry.id) }) {
-                                    Text("Remove", color = MomentumTheme.colors.statusCritical)
-                                }
-                            }
+                            MomentumEditDeleteActions(
+                                onEdit = { editingEntry = entry },
+                                onDelete = { viewModel.delete(entry.id) },
+                            )
                         }
                     }
                 }

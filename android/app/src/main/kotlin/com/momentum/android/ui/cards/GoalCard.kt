@@ -18,6 +18,7 @@ import com.momentum.android.network.dto.GoalDto
 import com.momentum.android.network.dto.GoalStatus
 import com.momentum.android.network.dto.GoalType
 import com.momentum.android.ui.components.MomentumCard
+import com.momentum.android.ui.components.MomentumDeleteIconButton
 import com.momentum.android.ui.theme.MomentumTheme
 import kotlin.math.round
 
@@ -102,9 +103,7 @@ fun GoalCard(
                     Text(if (goal.status == GoalStatus.PAUSED) "Resume" else "Pause")
                 }
             }
-            TextButton(onClick = onDelete) {
-                Text("Delete", color = MomentumTheme.colors.statusCritical)
-            }
+            MomentumDeleteIconButton(onClick = onDelete, contentDescription = "Delete goal")
         }
     }
 }

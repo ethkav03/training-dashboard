@@ -3,6 +3,7 @@ package com.momentum.android.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,27 +20,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.momentum.android.auth.AuthViewModel
 import com.momentum.android.healthconnect.HealthConnectManager
 import com.momentum.android.healthconnect.HealthConnectViewModel
+import com.momentum.android.network.dto.IntegrationProvider
 import com.momentum.android.ui.components.MomentumButton
 import com.momentum.android.ui.components.MomentumButtonVariant
 import com.momentum.android.ui.components.MomentumCard
 import com.momentum.android.ui.components.MomentumCardTitle
 import com.momentum.android.ui.theme.MomentumTheme
+import com.momentum.android.ui.theme.ThemePreference
+import com.momentum.android.ui.theme.ThemeViewModel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+
+private val SYNCED_AT_FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
 
 /**
  * Mirrors frontend/src/pages/SettingsPage.tsx's Profile + Integrations
  * sections -- absorbs what used to be the standalone SyncScreen (Health
- * Connect permission/sync UI). Units, appearance, energy baseline, WHOOP
- * status, and data controls all land in Sprint 21; this sprint only moves
- * what already existed into its new home.
+ * Connect permission/sync UI). WHOOP connect/disconnect stay web-only (see
+ * docs/architecture.md's Native Android app section), but syncing an
+ * already-connected account needs no OAuth flow, so that's included here.
+ * Units, energy baseline, and data controls land in Sprint 21.
  */
 @Composable
-fun SettingsScreen(authViewModel: AuthViewModel, healthConnectViewModel: HealthConnectViewModel) {
+fun SettingsScreen(
+    authViewModel: AuthViewModel,
+    healthConnectViewModel: HealthConnectViewModel,
+    themeViewModel: ThemeViewModel,
+) {
     val authState by authViewModel.state.collectAsState()
     val hcState by healthConnectViewModel.state.collectAsState()
+    val themePreference by themeViewModel.preference.collectAsState()
     val context = LocalContext.current
+    val integrationsViewModel: IntegrationsViewModel = viewModel(factory = remember { IntegrationsViewModel.Factory(context) })
+    val integrationsState by integrationsViewModel.state.collectAsState()
+    val whoop = integrationsState.connections.find { it.provider == IntegrationProvider.WHOOP }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = remember { healthConnectViewModel.requestPermissionsContract() },
@@ -48,7 +68,10 @@ fun SettingsScreen(authViewModel: AuthViewModel, healthConnectViewModel: HealthC
     // Re-checks status every time this screen is entered -- e.g. after the
     // user grants permissions in the system sheet, or installs/updates
     // Health Connect from the Play Store and comes back.
-    LaunchedEffect(Unit) { healthConnectViewModel.refreshStatus() }
+    LaunchedEffect(Unit) {
+        healthConnectViewModel.refreshStatus()
+        integrationsViewModel.refresh()
+    }
 
     Column(
         modifier = Modifier
@@ -67,6 +90,27 @@ fun SettingsScreen(authViewModel: AuthViewModel, healthConnectViewModel: HealthC
                 style = MaterialTheme.typography.bodySmall,
                 color = MomentumTheme.colors.textSecondary,
             )
+        }
+
+        MomentumCard {
+            MomentumCardTitle("Appearance")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ThemeOptionButton(
+                    label = "System",
+                    selected = themePreference == ThemePreference.SYSTEM,
+                    onClick = { themeViewModel.setPreference(ThemePreference.SYSTEM) },
+                )
+                ThemeOptionButton(
+                    label = "Light",
+                    selected = themePreference == ThemePreference.LIGHT,
+                    onClick = { themeViewModel.setPreference(ThemePreference.LIGHT) },
+                )
+                ThemeOptionButton(
+                    label = "Dark",
+                    selected = themePreference == ThemePreference.DARK,
+                    onClick = { themeViewModel.setPreference(ThemePreference.DARK) },
+                )
+            }
         }
 
         MomentumCard {
@@ -144,6 +188,46 @@ fun SettingsScreen(authViewModel: AuthViewModel, healthConnectViewModel: HealthC
             }
         }
 
+        MomentumCard {
+            MomentumCardTitle("WHOOP")
+            Text(
+                "Recovery, sleep and workout data",
+                style = MaterialTheme.typography.bodySmall,
+                color = MomentumTheme.colors.textSecondary,
+            )
+
+            if (whoop?.connected == true) {
+                Text(
+                    whoop.lastSyncAt?.let { "Last synced ${formatSyncedAt(it)}" } ?: "Connected — not synced yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MomentumTheme.colors.textSecondary,
+                )
+                MomentumButton(
+                    text = if (integrationsState.isSyncingWhoop) "Syncing..." else "Sync now",
+                    onClick = integrationsViewModel::syncWhoopNow,
+                    enabled = !integrationsState.isSyncingWhoop,
+                    variant = MomentumButtonVariant.Secondary,
+                )
+                if (integrationsState.isSyncingWhoop) CircularProgressIndicator()
+                integrationsState.lastWhoopResult?.let { result ->
+                    Text(
+                        "Synced ${result.recoveryRecordsSynced} recovery day(s) and " +
+                            "${result.trainingSessionsSynced} workout(s).",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                integrationsState.errorMessage?.let { message ->
+                    Text(message, style = MaterialTheme.typography.bodySmall, color = MomentumTheme.colors.statusCritical)
+                }
+            } else {
+                Text(
+                    "Not connected yet — connect WHOOP from Settings on the web app.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MomentumTheme.colors.textMuted,
+                )
+            }
+        }
+
         MomentumButton(
             text = "Sign out",
             onClick = authViewModel::signOut,
@@ -151,4 +235,17 @@ fun SettingsScreen(authViewModel: AuthViewModel, healthConnectViewModel: HealthC
             variant = MomentumButtonVariant.Secondary,
         )
     }
+}
+
+private fun formatSyncedAt(iso: String): String =
+    runCatching { Instant.parse(iso).atZone(ZoneId.systemDefault()).format(SYNCED_AT_FORMATTER) }.getOrDefault(iso)
+
+/** Mirrors web's Appearance section -- three buttons, the selected one filled rather than outlined. */
+@Composable
+private fun ThemeOptionButton(label: String, selected: Boolean, onClick: () -> Unit) {
+    MomentumButton(
+        text = label,
+        onClick = onClick,
+        variant = if (selected) MomentumButtonVariant.Primary else MomentumButtonVariant.Secondary,
+    )
 }
