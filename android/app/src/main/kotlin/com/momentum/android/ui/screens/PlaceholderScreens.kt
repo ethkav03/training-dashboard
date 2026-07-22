@@ -32,9 +32,6 @@ private fun ComingSoonScreen(title: String) {
 }
 
 @Composable
-fun ProgressPlaceholderScreen() = ComingSoonScreen("Progress")
-
-@Composable
 fun TrainingPlaceholderScreen() = ComingSoonScreen("Training")
 
 @Composable

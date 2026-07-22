@@ -12,7 +12,7 @@ import com.momentum.android.auth.AuthViewModel
 import com.momentum.android.healthconnect.HealthConnectViewModel
 import com.momentum.android.ui.screens.GoalsPlaceholderScreen
 import com.momentum.android.ui.screens.InsightsPlaceholderScreen
-import com.momentum.android.ui.screens.ProgressPlaceholderScreen
+import com.momentum.android.ui.screens.ProgressScreen
 import com.momentum.android.ui.screens.SettingsScreen
 import com.momentum.android.ui.screens.TodayScreen
 import com.momentum.android.ui.screens.TrainingPlaceholderScreen
@@ -39,7 +39,7 @@ fun MomentumNavHost(
             modifier = Modifier.padding(padding),
         ) {
             composable(MomentumDestination.Today.route) { TodayScreen(authViewModel, navController) }
-            composable(MomentumDestination.Progress.route) { ProgressPlaceholderScreen() }
+            composable(MomentumDestination.Progress.route) { ProgressScreen() }
             composable(MomentumDestination.Training.route) { TrainingPlaceholderScreen() }
             composable(MomentumDestination.Goals.route) { GoalsPlaceholderScreen() }
             composable(MomentumDestination.Insights.route) { InsightsPlaceholderScreen() }

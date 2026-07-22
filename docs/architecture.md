@@ -145,7 +145,9 @@ android/
     └── ui/
         ├── LoginScreen.kt          # Compose + Material3
         ├── navigation/             # MomentumDestination (6 tabs, mirrors web's NAV_ITEMS), MomentumBottomBar, MomentumNavHost
-        ├── screens/                # TodayScreen + SettingsScreen (real) + placeholders for Progress/Training/Goals/Insights, filled in sprint by sprint
+        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), SettingsScreen (real) + placeholders for Training/Goals/Insights
+        ├── forms/                  # WeightEntryForm, NutritionEntryForm -- mirrors frontend/src/components/forms/, one file per entity, same component for create+edit
+        ├── charts/                 # MomentumChartCard (chart/table toggle) + WeightTrendChart/EnergyBalanceChart (Vico) -- mirrors frontend/src/components/charts/
         ├── components/             # MomentumCard, MomentumButton, MomentumModalSheet -- mirrors frontend/src/components/ui/
         ├── cards/                  # ReadinessBadge, GoalCard, InsightCard -- mirrors frontend/src/components/cards/
         ├── timeline/               # TimelineEntryItem -- shared by Today's preview and the full Timeline screen (Sprint 20)
@@ -191,6 +193,33 @@ position, so `saveState`/`restoreState` were dropped: every tab switch now
 fully recomposes the destination, and each screen's own
 `LaunchedEffect(Unit) { viewModel.refresh() }` naturally re-fires on every
 visit. This applies to every future screen the same way, not just Today.
+
+**Sprint 17 builds Body and Fuel** (`ui/screens/{Body,Fuel}Screen.kt` +
+ViewModels), the first two tabs under a new `ProgressScreen` that hosts
+Body/Fuel/Recovery as sub-tabs via Material3 `TabRow`, mirroring how web
+nests them under one "Progress" nav item rather than three separate ones.
+Recovery is listed in the tab strip now (as a "coming later" placeholder)
+specifically so the tab positions don't reshuffle once Sprint 19 fills it
+in. Both screens follow the same shape as Today: a ViewModel wrapping the
+relevant repository, stat tiles, a chart, an entry list with edit/delete,
+and a `ModalBottomSheet` form (`ui/forms/WeightEntryForm.kt` /
+`NutritionEntryForm.kt`) shared between create and edit.
+
+New `ui/charts/` package: `MomentumChartCard` ports `ChartCard.tsx`'s
+chart/table toggle and conditional legend (only shown for 2+ series) without
+depending on Vico at all -- it just takes `chart`/`tableContent` Composable
+slots, so the toggle works identically regardless of what's inside.
+`WeightTrendChart`/`EnergyBalanceChart` are the first real use of Vico
+(picked in the Android-parity planning session over hand-rolled Canvas
+charts or the View-based MPAndroidChart). **Two deliberate scope trims,
+both because Vico's exact API for combining multiple mark types on one
+chart is the part of it I'm least confident about verbatim, not because the
+data doesn't support it:** `WeightTrendChart` renders only the smoothed
+7-day average line, not the raw-weigh-in scatter or the dashed goal-weight
+reference line web also shows; `EnergyBalanceChart`'s Vico setup (two-series
+grouped columns) is similarly best-recollection rather than confirmed
+against Vico's actual docs. Both are flagged inline with a link to
+Vico's guide to check against if they don't compile as written.
 
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
