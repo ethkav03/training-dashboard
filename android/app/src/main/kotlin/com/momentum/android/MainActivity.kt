@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import com.momentum.android.auth.AuthViewModel
 import com.momentum.android.healthconnect.HealthConnectViewModel
 import com.momentum.android.ui.LoginScreen
-import com.momentum.android.ui.SyncScreen
+import com.momentum.android.ui.navigation.MomentumNavHost
 import com.momentum.android.ui.theme.MomentumTheme
 
 class MainActivity : ComponentActivity() {
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
                     if (authState.token == null) {
                         LoginScreen(viewModel = authViewModel)
                     } else {
-                        SyncScreen(authViewModel = authViewModel, healthConnectViewModel = healthConnectViewModel)
+                        MomentumNavHost(authViewModel = authViewModel, healthConnectViewModel = healthConnectViewModel)
                     }
                 }
             }

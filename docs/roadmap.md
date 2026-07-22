@@ -25,11 +25,24 @@ for the implementation detail behind each item.
 | 9 | WHOOP OAuth connect/callback/disconnect (real endpoints, scopes verified against developer.whoop.com), signed-state CSRF protection, Settings UI (connect/sync-now/disconnect, visible error state) | Done |
 | 10 | WHOOP data sync: real recovery/sleep/workout fetch (paginated), field mapping (sport→ActivityType, strain→intensity, kJ→kcal), sync result summary in Settings | Done |
 | 10.5 | Fuel: calories-consumed-vs-burned indicator + day/week/month/year energy-balance graph | Done |
-| 11 | Mobile auth (`POST /auth/google/mobile`, shared `upsertUserFromGoogleIdentity`) + native Android app scaffold (Kotlin, Google Sign-In only, no Health Connect yet) | Done (backend verified via curl; Android project written but not yet compiled/run -- no Android SDK/emulator in the build environment, see [architecture.md](./architecture.md#native-android-app)) |
+| 11 | Mobile auth (`POST /auth/google/mobile`, shared `upsertUserFromGoogleIdentity`) + native Android app scaffold (Kotlin, Google Sign-In only, no Health Connect yet) | Done (backend verified via curl; Android project since built and run for real in Android Studio -- see the note after this table) |
 | 12 | Health Connect read + manual sync from the Android app (bounded historical read, mapper, `POST /integrations/health-connect/sync`) | Done (backend verified via curl; Android client written — `HealthConnectManager`/`Repository`/`Mapper`/`ViewModel`, `SyncScreen` wiring — but not yet compiled/run, same caveat as Sprint 11, see [architecture.md](./architecture.md#native-android-app)) |
 | — | **Interim feature additions** (mid-build, not their own sprint): meal-type categorization (`NutritionEntry.mealType`: Breakfast/Lunch/Dinner/Snacks, matching MyFitnessPal's diary layout, with time-of-day default); Recovery now logs `sleepScore` (0–100) and `strain` (0–21, 1 decimal) as pass-through headline metrics alongside the existing readiness score, with WHOOP sync computing "yesterday's strain" via previous-completed-cycle lookup | Done |
 | 13 | Android `WorkManager` periodic incremental sync (Health Connect changes-token, token-expiry fallback) | Done (backend unaffected; Android client written — `SyncWorker`/`SyncScheduler`/`HealthConnectSyncState` — but not yet compiled/run, same caveat as Sprints 11–12, see [architecture.md](./architecture.md#native-android-app)). Web Settings' Health Connect row shipped earlier than planned, alongside Sprint 9's WHOOP row; on-device steps display deferred, see below. |
 | 14 | Docs pass across all five `/docs` files for Sprints 8–13 + `.env.example` updates + Settings polish | Done |
+| 15 | Android full-parity foundation: complete DTO/enum port, full Retrofit surface (every backend route), a repository per resource, a real bottom-nav shell (`ui/navigation/`) replacing the old two-screen if/else, shared UI primitives (`ui/components/`, `ui/cards/`), ported color palette, Health Connect UI relocated from the retired `SyncScreen` into the new `SettingsScreen` | Done, real build/run in progress with the user in Android Studio |
+
+Since Sprint 11, the Android app has moved from "written but unverified" to
+actually being built and run in Android Studio, with several real errors
+found and fixed along the way: a Retrofit converter pinned to a version that
+was never published, an `AndroidManifest.xml` comment using `--` (illegal
+inside any XML comment, not just as the closing delimiter), a base theme
+referencing a Material Components style with no corresponding dependency,
+and a `GOOGLE_WEB_CLIENT_ID` that had the wrong OAuth client pasted in. WHOOP
+OAuth (web) was also fixed twice during this same stretch — a router
+mount-order bug that broke the callback, and a token-exchange body sent as
+JSON instead of the form-urlencoded WHOOP's OAuth server (Ory Hydra)
+actually requires — both confirmed fixed against a real WHOOP account.
 
 ## Explicitly out of scope for this build
 

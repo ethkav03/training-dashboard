@@ -14,7 +14,8 @@ import com.momentum.android.network.HealthConnectSyncRequest
 import kotlinx.coroutines.flow.first
 
 /**
- * Background counterpart to the manual "Sync now" button on SyncScreen --
+ * Background counterpart to the manual "Sync now" button on the Settings
+ * screen --
  * same read-map-post pipeline, but incremental via Health Connect's
  * changes-token instead of always re-reading a 30-day window, since this one
  * runs unattended every ~6h rather than once per user tap.

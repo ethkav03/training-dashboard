@@ -42,10 +42,10 @@ class HealthConnectViewModel(
         // Runs once, the first time this ViewModel is created -- which
         // coincides with the user actually being signed in (see
         // MainActivity: this ViewModel is only ever referenced from
-        // SyncScreen, itself only shown once authState.token != null). If
-        // Health Connect access is already granted, sync immediately rather
-        // than waiting for a manual "Sync now" tap -- mirrors the backend
-        // auto-syncing WHOOP on every login (auth.routes.ts).
+        // MomentumNavHost, itself only shown once authState.token != null).
+        // If Health Connect access is already granted, sync immediately
+        // rather than waiting for a manual "Sync now" tap -- mirrors the
+        // backend auto-syncing WHOOP on every login (auth.routes.ts).
         viewModelScope.launch {
             if (checkPermissionsAndUpdateState()) {
                 SyncScheduler.schedule(appContext)

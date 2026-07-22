@@ -2,7 +2,7 @@ package com.momentum.android.auth
 
 import com.momentum.android.network.GoogleMobileAuthRequest
 import com.momentum.android.network.MomentumApi
-import com.momentum.android.network.UserProfileResponse
+import com.momentum.android.network.dto.UserDto
 
 class AuthRepository(
     private val api: MomentumApi,
@@ -17,7 +17,7 @@ class AuthRepository(
         response.token
     }
 
-    suspend fun fetchCurrentUser(): Result<UserProfileResponse> = runCatching { api.getCurrentUser() }
+    suspend fun fetchCurrentUser(): Result<UserDto> = runCatching { api.getCurrentUser() }
 
     fun signOut() {
         tokenStore.token = null

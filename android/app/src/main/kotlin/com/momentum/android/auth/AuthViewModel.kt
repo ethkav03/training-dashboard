@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.momentum.android.network.ApiClient
-import com.momentum.android.network.UserProfileResponse
+import com.momentum.android.network.dto.UserDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 data class AuthUiState(
     val token: String? = null,
-    val user: UserProfileResponse? = null,
+    val user: UserDto? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 )

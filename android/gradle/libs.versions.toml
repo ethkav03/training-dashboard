@@ -1,5 +1,5 @@
 [versions]
-agp = "8.6.0"
+agp = "8.13.2"
 kotlin = "2.0.21"
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.6"
@@ -15,6 +15,13 @@ securityCrypto = "1.1.0-alpha06"
 coroutines = "1.9.0"
 work = "2.9.1"
 datastorePreferences = "1.1.1"
+navigationCompose = "2.8.4"
+# Vico's exact current version isn't independently verifiable in this
+# environment (no network/Gradle access) -- same "best recall, verify at
+# build time" caveat as the rest of this Android project. If Gradle can't
+# resolve this, check https://patrykandpatrick.com/vico for the latest
+# published `compose`/`compose-m3` version and bump here.
+vico = "1.14.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +41,9 @@ androidx-security-crypto = { group = "androidx.security", name = "security-crypt
 androidx-health-connect-client = { group = "androidx.health.connect", name = "connect-client", version.ref = "healthConnect" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico" }
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-converter-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }

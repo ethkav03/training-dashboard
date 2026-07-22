@@ -130,7 +130,9 @@ android/
     │   └── TokenStore.kt           # EncryptedSharedPreferences, not plain SharedPreferences
     ├── network/
     │   ├── ApiClient.kt            # Retrofit + OkHttp + kotlinx-serialization, Bearer interceptor
-    │   └── MomentumApi.kt          # Retrofit interface + @Serializable request/response models
+    │   ├── MomentumApi.kt          # Retrofit interface -- full REST surface, one section per backend route file
+    │   └── dto/                    # @Serializable data classes hand-ported from packages/shared/src/{dto.ts,enums.ts}
+    ├── data/                       # one Repository per resource (WeightRepository, GoalRepository, ...) -- thin suspend wrappers over MomentumApi, mirrors frontend/src/api/*.ts
     ├── healthconnect/
     │   ├── HealthConnectManager.kt     # SDK availability check, fixed permission set, permission contract
     │   ├── HealthConnectRepository.kt  # bounded + changes-token reads (weight/exercise/sleep) + per-session aggregates
@@ -140,7 +142,13 @@ android/
     ├── sync/
     │   ├── SyncWorker.kt               # CoroutineWorker: same read-map-post pipeline, changes-token driven
     │   └── SyncScheduler.kt            # enqueues SyncWorker as ~6h unique periodic WorkManager work
-    └── ui/                         # Compose + Material3: LoginScreen, SyncScreen, theme/
+    └── ui/
+        ├── LoginScreen.kt          # Compose + Material3
+        ├── navigation/             # MomentumDestination (6 tabs, mirrors web's NAV_ITEMS), MomentumBottomBar, MomentumNavHost
+        ├── screens/                # SettingsScreen (real) + placeholder screens for Today/Progress/Training/Goals/Insights, filled in sprint by sprint
+        ├── components/             # MomentumCard, MomentumButton, MomentumModalSheet -- mirrors frontend/src/components/ui/
+        ├── cards/                  # ReadinessBadge, GoalCard, InsightCard -- mirrors frontend/src/components/cards/
+        └── theme/                  # Color/Theme/Type -- palette ported from frontend/src/styles/index.css
 ```
 
 Auth (Sprint 11) stayed deliberately narrow: sign in, store the token, show
@@ -150,9 +158,20 @@ posts it to `POST /integrations/health-connect/sync`. Sprint 13 added the
 background half — periodic `WorkManager` sync using Health Connect's
 changes-token so it isn't re-reading 30 days of history every ~6 hours.
 
+**Sprint 15 begins full feature parity with web** (see roadmap.md) — a real
+bottom-nav shell (`ui/navigation/`) with the same six destinations as web's
+`NAV_ITEMS`, a full DTO/Retrofit/repository layer covering every backend
+route, and a ported color palette (`ui/theme/Color.kt`, matching
+`frontend/src/styles/index.css`'s categorical/status colors exactly, light
+and dark). The old standalone `SyncScreen` is gone — its Health Connect
+permission/sync UI moved into the new `SettingsScreen`, alongside profile
+info, matching where that same functionality lives in web's Settings page.
+Today/Progress/Training/Goals/Insights are placeholder screens until their
+own sprints (16-20) build the real thing.
+
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
-`SyncScreen`, itself only shown once `authState.token != null`) checks
+`MomentumNavHost`, itself only shown once `authState.token != null`) checks
 permission status and, if Health Connect access is already granted, calls
 `syncNow()` immediately rather than waiting for a manual tap. This mirrors
 the backend auto-syncing WHOOP on every login (see
