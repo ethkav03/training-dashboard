@@ -14,7 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,11 @@ import com.momentum.android.ui.components.MomentumButtonSize
 import com.momentum.android.ui.components.MomentumButtonVariant
 import com.momentum.android.ui.components.MomentumCard
 import com.momentum.android.ui.components.MomentumCardTitle
+import com.momentum.android.ui.forms.GoalForm
+import com.momentum.android.ui.forms.NutritionEntryForm
+import com.momentum.android.ui.forms.RecoveryEntryForm
+import com.momentum.android.ui.forms.TrainingSessionForm
+import com.momentum.android.ui.forms.WeightEntryForm
 import com.momentum.android.ui.navigation.MomentumDestination
 import com.momentum.android.ui.navigation.TIMELINE_ROUTE
 import com.momentum.android.ui.theme.MomentumTheme
@@ -51,10 +58,13 @@ private fun greeting(): String {
 }
 
 /**
- * Mirrors frontend/src/pages/TodayPage.tsx. "Quick actions" navigates to the
- * relevant tab for now rather than opening an inline log form -- those
- * forms don't exist yet (Sprints 17-19 build Body/Fuel/Training/Recovery/
- * Goals), so this is an honest interim behavior, not the final one.
+ * Mirrors frontend/src/pages/TodayPage.tsx, including its `activeModal`
+ * pattern -- "Quick actions" (and the empty-readiness-state "Log recovery"
+ * button) open the same entry-form bottom sheets each pillar's own screen
+ * uses, rather than navigating away from Today, exactly like web's inline
+ * modals. Saving refreshes this screen's own dashboard aggregate afterward
+ * (each form's owning ViewModel only refreshes its own resource), so the new
+ * entry shows up on Today immediately without a manual pull-to-refresh.
  */
 @Composable
 fun TodayScreen(authViewModel: AuthViewModel, navController: NavHostController) {
@@ -62,6 +72,18 @@ fun TodayScreen(authViewModel: AuthViewModel, navController: NavHostController) 
     val viewModel: TodayViewModel = viewModel(factory = remember { TodayViewModel.Factory(context) })
     val uiState by viewModel.state.collectAsState()
     val authState by authViewModel.state.collectAsState()
+
+    var activeModal by remember { mutableStateOf<String?>(null) }
+    val bodyViewModel: BodyViewModel = viewModel(factory = remember { BodyViewModel.Factory(context) })
+    val fuelViewModel: FuelViewModel = viewModel(factory = remember { FuelViewModel.Factory(context) })
+    val trainingViewModel: TrainingViewModel = viewModel(factory = remember { TrainingViewModel.Factory(context) })
+    val recoveryViewModel: RecoveryViewModel = viewModel(factory = remember { RecoveryViewModel.Factory(context) })
+    val goalsViewModel: GoalsViewModel = viewModel(factory = remember { GoalsViewModel.Factory(context) })
+
+    fun closeModalAndRefresh() {
+        activeModal = null
+        viewModel.refresh()
+    }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
 
@@ -119,7 +141,7 @@ fun TodayScreen(authViewModel: AuthViewModel, navController: NavHostController) 
                             text = "Log recovery",
                             size = MomentumButtonSize.Small,
                             variant = MomentumButtonVariant.Secondary,
-                            onClick = { navController.navigate(MomentumDestination.Progress.route) },
+                            onClick = { activeModal = "recovery" },
                         )
                     }
                 }
@@ -241,14 +263,47 @@ fun TodayScreen(authViewModel: AuthViewModel, navController: NavHostController) 
             MomentumCard {
                 MomentumCardTitle("Quick actions")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MomentumButton("Log weight", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { navController.navigate(MomentumDestination.Progress.route) })
-                    MomentumButton("Log meal", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { navController.navigate(MomentumDestination.Progress.route) })
+                    MomentumButton("Log weight", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { activeModal = "weight" })
+                    MomentumButton("Log meal", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { activeModal = "nutrition" })
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MomentumButton("Log workout", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { navController.navigate(MomentumDestination.Training.route) })
-                    MomentumButton("New goal", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { navController.navigate(MomentumDestination.Goals.route) })
+                    MomentumButton("Log workout", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { activeModal = "training" })
+                    MomentumButton("Log recovery", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { activeModal = "recovery" })
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MomentumButton("New goal", size = MomentumButtonSize.Small, variant = MomentumButtonVariant.Secondary, onClick = { activeModal = "goal" })
                 }
             }
         }
+    }
+
+    when (activeModal) {
+        "weight" -> WeightEntryForm(
+            entry = null,
+            onDismiss = { activeModal = null },
+            onCreate = { body -> bodyViewModel.create(body) { closeModalAndRefresh() } },
+            onUpdate = { _, _ -> },
+        )
+        "nutrition" -> NutritionEntryForm(
+            entry = null,
+            defaultMealType = null,
+            onDismiss = { activeModal = null },
+            onCreate = { body -> fuelViewModel.create(body) { closeModalAndRefresh() } },
+            onUpdate = { _, _ -> },
+        )
+        "training" -> TrainingSessionForm(
+            session = null,
+            onDismiss = { activeModal = null },
+            onCreate = { body -> trainingViewModel.create(body) { closeModalAndRefresh() } },
+            onUpdate = { _, _ -> },
+        )
+        "recovery" -> RecoveryEntryForm(
+            onDismiss = { activeModal = null },
+            onSave = { body -> recoveryViewModel.logRecovery(body) { closeModalAndRefresh() } },
+        )
+        "goal" -> GoalForm(
+            onDismiss = { activeModal = null },
+            onCreate = { body -> goalsViewModel.create(body) { closeModalAndRefresh() } },
+        )
     }
 }

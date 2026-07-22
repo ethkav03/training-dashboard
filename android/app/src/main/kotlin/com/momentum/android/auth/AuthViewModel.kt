@@ -71,10 +71,11 @@ class AuthViewModel(
     }
 
     /**
-     * Re-fetches the current user -- also used after onboarding/profile
-     * mutations so `state.user.onboardingStatus` (which gates nav in
-     * MainActivity) and unit/energy-baseline fields stay in sync with what
-     * was just saved, without every screen needing its own user-refresh path.
+     * Re-fetches the current user -- used on cold start (a stored token
+     * needs revalidating) and right after sign-in. Profile/onboarding
+     * mutations don't call this: they already get a fresh UserDto back from
+     * the mutation itself and hand it to `setUser` instead, skipping a
+     * redundant round-trip.
      */
     fun refresh() {
         viewModelScope.launch {

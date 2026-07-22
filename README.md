@@ -108,12 +108,16 @@ sync itself works.
    nothing to show until your first WHOOP recovery cycle actually closes
    (typically the next morning) — that's expected, not a bug.
 
-## Native Android app (optional, in progress)
+## Native Android app
 
-`android/` is a separate Kotlin/Gradle project (Health Connect integration —
-see [`docs/architecture.md`](./docs/architecture.md#native-android-app) for
-why it exists) — **not** part of this repo's npm workspaces. Open it directly
-in Android Studio, not via this README's commands:
+`android/` is a separate Kotlin/Jetpack Compose Gradle project — **not** part
+of this repo's npm workspaces — that now has full feature parity with the web
+app: Today, Progress (Body/Fuel/Recovery), Training (incl. exercise
+progression), Goals, Insights, Timeline, and Settings, plus the same
+first-run Onboarding flow web has. See
+[`docs/architecture.md`](./docs/architecture.md#native-android-app) for the
+full breakdown of why it exists and how it's structured. Open it directly in
+Android Studio, not via this README's commands:
 
 1. Android Studio → Open → select the `android/` folder.
 2. Copy `android/local.properties.example` to `android/local.properties` and
@@ -122,18 +126,26 @@ in Android Studio, not via this README's commands:
    Console step this needs (a separate Android-type OAuth client).
 3. Run on an emulator or device. The default `API_BASE_URL` targets the
    standard emulator; see the architecture doc for real-device networking.
-4. Sign in, then grant the Health Connect permission prompt and tap **Sync
-   now** to pull weight/workout/sleep data into Momentum. If Health Connect
-   isn't installed (or needs updating) on the device/emulator, the app links
-   straight to its Play Store listing instead of just failing silently.
-5. Granting that permission also schedules a background sync (`WorkManager`,
-   roughly every 6 hours, incremental via Health Connect's own changes-token)
-   — "roughly" because Doze/App Standby can delay it; **Sync now** stays the
-   reliable way to pull fresh data on demand.
+4. Sign in — first-time users land on the Onboarding screen (units, height,
+   weight, a primary goal, training frequency, all optional and skippable);
+   everyone else lands straight on Today. Every pillar is fully readable and
+   editable from the phone against the same backend the web app uses, so
+   logging a weigh-in, meal, workout, recovery entry, or goal on one shows up
+   on the other.
+5. In Settings, grant the Health Connect permission prompt and tap **Sync
+   now** to pull weight/workout/sleep data from the device. If Health Connect
+   isn't installed (or needs updating), the app links straight to its Play
+   Store listing instead of just failing silently. Granting that permission
+   also schedules a background sync (`WorkManager`, roughly every 6 hours,
+   incremental via Health Connect's own changes-token) — "roughly" because
+   Doze/App Standby can delay it; **Sync now** stays the reliable way to pull
+   fresh data on demand. WHOOP is read-only on Android (status + a manual
+   **Sync now**) — connect/disconnect stays a web-only action.
 
-This part of the project has been written but not yet compiled/run in this
-environment (no Android SDK or emulator available where it was built) —
-Android Studio's build is the first real verification step.
+This app has been built and run for real in Android Studio throughout its
+development (not just written and assumed to compile) — several real
+compiler and runtime errors were found and fixed along the way, described in
+[`docs/roadmap.md`](./docs/roadmap.md).
 
 ## Notes for local development
 

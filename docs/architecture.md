@@ -176,10 +176,12 @@ own sprints (16-20) build the real thing.
 `TodayViewModel.kt`), mirroring `TodayPage.tsx`: readiness card, four stat
 tiles, active-goals strip, top insights, recent achievements, today's
 timeline (`ui/timeline/TimelineEntryItem.kt`, shared with the future full
-Timeline screen), and quick-action buttons. Those buttons navigate to the
-relevant tab rather than opening an inline log form for now — the entry
-forms themselves don't exist yet (Sprints 17-19 build Body/Fuel/Training/
-Recovery/Goals) — an honest interim behavior, not the intended final one.
+Timeline screen), and quick-action buttons. At this point the buttons
+navigate to the relevant tab rather than opening an inline log form — the
+entry forms themselves don't exist yet (Sprints 17-19 build Body/Fuel/
+Training/Recovery/Goals) — an honest interim behavior, not the intended
+final one. **Sprint 22 replaces this** with the same inline bottom-sheet
+modals web actually uses (see below).
 
 This sprint also changed how tab switches behave, app-wide.
 `MomentumBottomBar` used to pass `saveState`/`restoreState = true` to
@@ -402,6 +404,34 @@ Both `SKIPPED` and `COMPLETED` count as "done," same as web -- only
 Saving or skipping doesn't navigate anywhere explicitly; flipping
 `onboardingStatus` via `setUser()` just makes this `when` fall through to
 `MomentumNavHost` on the next recomposition.
+
+**Sprint 22 is a parity/consistency pass**, not a new-screens sprint --
+every screen already existed. Its one behavioral change: `TodayScreen`'s
+Quick actions (and the empty-readiness-state "Log recovery" button) had
+navigated to the relevant tab since Sprint 16, an honestly-flagged stand-in
+for forms that didn't exist yet at the time. Now that every form does exist,
+this sprint replaces that navigation with the same inline bottom-sheet
+modals web's own `TodayPage.tsx` uses (`activeModal` state, one of
+`weight`/`nutrition`/`training`/`recovery`/`goal`) -- `TodayScreen` reaches
+past its own `TodayViewModel` to also hold a `BodyViewModel`/`FuelViewModel`/
+`TrainingViewModel`/`RecoveryViewModel`/`GoalsViewModel` just to call their
+existing `create`/`logRecovery` methods; saving closes the sheet and calls
+`TodayViewModel.refresh()` so the new entry shows up on Today immediately
+(each of those five ViewModels only refreshes its *own* resource, not
+Today's dashboard aggregate, so that extra refresh call is the one new piece
+of wiring this needed). A previously-missing "Log recovery" Quick Action
+button was added at the same time, since it's a sixth `activeModal` case web
+already has that Android's Quick actions row had never included.
+
+Beyond that, this sprint was a documentation and dead-comment sweep: root
+`README.md`'s Native Android app section (last accurate as of Sprint 14,
+back when the app was Health-Connect-sync-only) rewritten for full parity;
+`docs/roadmap.md`'s Sprint 12/13/15 rows -- written before those sprints had
+been compiled/run for real -- updated to note they were superseded by actual
+Android Studio builds from Sprint 15 onward; and a couple of forward-looking
+code comments (`AuthViewModel.refresh`'s KDoc, this file's Sprint 16
+paragraph above) that had drifted from what the code actually does by the
+time later sprints landed.
 
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
