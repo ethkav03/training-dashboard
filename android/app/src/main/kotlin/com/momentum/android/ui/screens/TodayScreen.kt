@@ -30,6 +30,7 @@ import com.momentum.android.ui.components.MomentumButtonVariant
 import com.momentum.android.ui.components.MomentumCard
 import com.momentum.android.ui.components.MomentumCardTitle
 import com.momentum.android.ui.navigation.MomentumDestination
+import com.momentum.android.ui.navigation.TIMELINE_ROUTE
 import com.momentum.android.ui.theme.MomentumTheme
 import com.momentum.android.ui.timeline.TimelineEntryItem
 import java.time.Instant
@@ -219,7 +220,15 @@ fun TodayScreen(authViewModel: AuthViewModel, navController: NavHostController) 
             }
 
             MomentumCard {
-                MomentumCardTitle("Today's timeline")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    MomentumCardTitle("Today's timeline")
+                    MomentumButton(
+                        text = "Full timeline",
+                        size = MomentumButtonSize.Small,
+                        variant = MomentumButtonVariant.Ghost,
+                        onClick = { navController.navigate(TIMELINE_ROUTE) },
+                    )
+                }
                 if (data.timelineToday.isEmpty()) {
                     Text("Nothing logged yet today.", color = MomentumTheme.colors.textMuted)
                 } else {

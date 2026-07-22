@@ -9,3 +9,9 @@ enum class MomentumDestination(val route: String, val label: String, val icon: S
     Insights("insights", "Insights", "💡"),
     Settings("settings", "Settings", "⚙"),
 }
+
+// Not a bottom-nav tab -- reached via Today's "Full timeline" link, same as
+// web's <Link to="/timeline">, so it's a plain pushed destination rather
+// than one of MomentumDestination's six entries. Public (unlike
+// MomentumNavHost's other route constants) since TodayScreen needs it too.
+const val TIMELINE_ROUTE = "timeline"

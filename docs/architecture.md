@@ -145,7 +145,7 @@ android/
     └── ui/
         ├── LoginScreen.kt          # Compose + Material3
         ├── navigation/             # MomentumDestination (6 tabs, mirrors web's NAV_ITEMS), MomentumBottomBar, MomentumNavHost
-        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), TrainingScreen + ExerciseProgressionScreen, GoalsScreen, SettingsScreen (real) + a placeholder for Insights
+        ├── screens/                # TodayScreen, ProgressScreen (Body/Fuel/Recovery sub-tabs), TrainingScreen + ExerciseProgressionScreen, GoalsScreen, InsightsScreen, TimelineScreen, SettingsScreen -- every screen is real, no placeholders left
         ├── forms/                  # WeightEntryForm, NutritionEntryForm, TrainingSessionForm, RecoveryEntryForm, GoalForm -- mirrors frontend/src/components/forms/, one file per entity, same component for create+edit
         ├── charts/                 # MomentumChartCard (chart/table toggle) + WeightTrendChart/EnergyBalanceChart/ExerciseProgressionChart (Vico) -- mirrors frontend/src/components/charts/
         ├── components/             # MomentumCard, MomentumButton, MomentumModalSheet -- mirrors frontend/src/components/ui/
@@ -320,6 +320,28 @@ sub-tab and the app's last data-entry tab, mirroring
   `GoalsPage.tsx`. `GoalCard`'s `onTogglePause`/`onDelete` callbacks (written
   back in Sprint 15 as presentation-only props, unused until now) finally
   get real implementations wired to `GoalsViewModel`.
+
+**Sprint 20 builds Timeline and Insights** -- the last two screens, mirroring
+`TimelinePage.tsx` and `InsightsPage.tsx`. `InsightsScreen` is plain and
+read-only (no forms, matching web). `TimelineScreen` is week-paged: a
+`weekOffset: Long` in `TimelineViewModel` drives the `[from, to]` range sent
+to `GET /timeline`, and entries are grouped by calendar day client-side via
+`Instant.parse(entry.date).atZone(zone).toLocalDate()` then a `TreeMap`-style
+sort (`toSortedMap(compareByDescending { it })`) for newest-day-first
+ordering -- the same shape as `TodayScreen`'s timeline preview, reusing the
+same `ui/timeline/TimelineEntryItem.kt`.
+
+Timeline is deliberately **not** one of the six bottom-nav tabs, matching
+how web treats it as a `Link` off Today rather than its own `NAV_ITEMS`
+entry -- reached via a new "Full timeline" button on `TodayScreen`'s
+timeline card, pushed as a plain `composable("timeline")` destination.
+Since two files (`MomentumNavHost` and `TodayScreen`) both need that route
+string, it's a public `TIMELINE_ROUTE` constant in `MomentumDestination.kt`
+rather than a private literal duplicated in each.
+
+With Insights and Timeline done, `ui/screens/PlaceholderScreens.kt` (the
+`ComingSoonScreen` stand-in used since Sprint 15) has nothing left to back
+and was deleted outright rather than left as dead code.
 
 **Auto-sync on login.** `HealthConnectViewModel`'s `init` block (which only
 ever runs once per sign-in — this ViewModel is first referenced from
